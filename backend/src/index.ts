@@ -45,6 +45,24 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Ruta de bienvenida
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: '🏋️ Bienvenido a la API del Gimnasio',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      auth: '/api/auth',
+      attendance: '/api/attendance',
+      payments: '/api/payments',
+      admin: '/api/admin',
+      users: '/api/users'
+    },
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({
