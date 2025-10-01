@@ -12,7 +12,7 @@
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "render-deploy": "npm run build && npm run start" // Nuevo script para Render
+    "render-deploy": "npm run build && npm run start"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.4",
