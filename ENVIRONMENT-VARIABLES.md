@@ -22,9 +22,9 @@ NODE_ENV=production
 PORT=10000
 SUPABASE_URL=https://ppujkawteiowcmkkbzri.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdWprYXd0ZWlvd2Nta2tienJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNTkwMDksImV4cCI6MjA3NDgzNTAwOX0.6xjS_mf1ajbGIxtdNN3XGnYWvAoDoCXb5SmRGKvZ1LQ
-SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key_real_aqui
-JWT_SECRET=mi_jwt_secret_super_seguro_123
-JWT_REFRESH_SECRET=mi_jwt_refresh_secret_super_seguro_456
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdWprYXd0ZWlvd2Nta2tienJpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTI1OTAwOSwiZXhwIjoyMDc0ODM1MDA5fQ.Ej1SFxkhXY8s2QxXs8Z5vswKLv9WwO1QseJ3b5l0ln0
+JWT_SECRET=gym_platform_jwt_secret_2024_secure_key_12345
+JWT_REFRESH_SECRET=gym_platform_refresh_jwt_secret_2024_secure_key_67890
 ```
 
 ---
@@ -50,6 +50,6 @@ JWT_REFRESH_SECRET=mi_jwt_refresh_secret_super_seguro_456
 
 ## ⚠️ Importante
 
-- Cambia `tu_service_role_key_real_aqui` por la Service Role Key real de Supabase
+- Todas las variables están configuradas con los valores reales
 - Cambia `https://gym-platform-backend.onrender.com` por la URL real de tu backend en Render
 - Cambia `https://tu-proyecto.vercel.app` por la URL real de tu frontend en Vercel
