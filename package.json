@@ -1,0 +1,19 @@
+{
+  "name": "gym-platform",
+  "version": "1.0.0",
+  "description": "Plataforma web para gestión de gimnasio en Argentina",
+  "main": "index.js",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm run start",
+    "install:all": "cd frontend && npm install",
+    "deploy": "cd frontend && vercel --prod"
+  },
+  "keywords": ["gym", "gimnasio", "argentina", "react", "nodejs", "supabase"],
+  "author": "Tu Nombre",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
