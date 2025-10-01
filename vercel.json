@@ -4,10 +4,5 @@
   "devCommand": "cd frontend && npm run dev",
   "installCommand": "cd frontend && npm install",
   "framework": "nextjs",
-  "outputDirectory": "frontend/.next",
-  "functions": {
-    "frontend/app/api/**/*.ts": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "outputDirectory": "frontend/.next"
 }
