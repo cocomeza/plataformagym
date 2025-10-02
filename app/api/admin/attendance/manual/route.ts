@@ -82,13 +82,21 @@ export async function POST(request: NextRequest) {
         .select()
         .single();
 
-      if (createSessionError) {
+      if (createSessionError || !newSession) {
         return NextResponse.json(
           { error: 'Error al crear sesión' },
           { status: 500 }
         );
       }
       session = newSession;
+    }
+
+    // Verificar que session no es null
+    if (!session) {
+      return NextResponse.json(
+        { error: 'No se pudo obtener o crear la sesión' },
+        { status: 500 }
+      );
     }
 
     // Verificar si ya marcó asistencia hoy
