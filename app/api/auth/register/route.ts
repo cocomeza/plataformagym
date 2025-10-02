@@ -75,6 +75,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verificar que las variables de entorno estén configuradas
+    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+      return NextResponse.json(
+        { error: 'Configuración del servidor incompleta' },
+        { status: 500 }
+      );
+    }
+
     // Generar JWT
     const token = jwt.sign(
       { 
@@ -82,13 +90,13 @@ export async function POST(request: NextRequest) {
         email: user.email, 
         rol: user.rol 
       },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
     const refreshToken = jwt.sign(
       { userId: user.id },
-      process.env.JWT_REFRESH_SECRET!,
+      process.env.JWT_REFRESH_SECRET,
       { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
     );
 
