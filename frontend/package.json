@@ -7,9 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit",
-    "vercel-build": "next build",
-    "postbuild": "next-sitemap"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.8.7",
