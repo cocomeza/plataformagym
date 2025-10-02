@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -84,20 +84,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Generar JWT
+    const jwtSecret = process.env.JWT_SECRET as string;
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET as string;
+    
     const token = jwt.sign(
       { 
         userId: user.id, 
         email: user.email, 
         rol: user.rol 
       },
-      process.env.JWT_SECRET as string,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+      jwtSecret,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } as SignOptions
     );
 
     const refreshToken = jwt.sign(
       { userId: user.id },
-      process.env.JWT_REFRESH_SECRET as string,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+      jwtRefreshSecret,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' } as SignOptions
     );
 
     // Actualizar refresh token
