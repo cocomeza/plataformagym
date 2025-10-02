@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "rootDirectory": "frontend",
   "buildCommand": "cd frontend && npm install && npm run build",
   "devCommand": "cd frontend && npm run dev",
   "installCommand": "cd frontend && npm install",
