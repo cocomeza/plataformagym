@@ -94,13 +94,13 @@ export async function POST(request: NextRequest) {
         rol: user.rol 
       },
       jwtSecret,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' } as SignOptions
+      { expiresIn: '1h' }
     );
 
     const refreshToken = jwt.sign(
       { userId: user.id },
       jwtRefreshSecret,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' } as SignOptions
+      { expiresIn: '7d' }
     );
 
     // Actualizar refresh token
