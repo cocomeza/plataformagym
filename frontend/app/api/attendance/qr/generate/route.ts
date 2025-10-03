@@ -21,7 +21,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    // Verificar que JWT_SECRET esté configurado
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json(
+        { error: 'Token de acceso requerido' },
+        { status: 401 }
+      );
+    }
+
+    const jwtSecret = process.env.JWT_SECRET as string;
+    const decoded = jwt.verify(token, jwtSecret) as any;
     
     // Verificar que es admin
     const { data: user } = await supabase
@@ -76,7 +85,17 @@ export async function POST(request: NextRequest) {
       expiresAt: Date.now() + (parseInt(process.env.QR_EXPIRY_MINUTES || '5') * 60 * 1000)
     };
 
-    const qrCode = jwt.sign(qrData, process.env.JWT_SECRET!);
+    // Verificar que JWT_SECRET esté configurado
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json(
+        { error: 'Configuración del servidor incompleta' },
+        { status: 500 }
+      );
+    }
+
+    const jwtSecret = process.env.JWT_SECRET as string;
+
+    const qrCode = jwt.sign(qrData, jwtSecret);
     
     // Generar imagen QR
     const qrImageUrl = await QRCode.toDataURL(qrCode, {
