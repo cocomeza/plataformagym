@@ -97,7 +97,7 @@ router.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error('Error en login:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Error interno del servidor'
     });
   }
@@ -220,7 +220,7 @@ router.post('/register', async (req, res) => {
 
   } catch (error) {
     console.error('Error en registro:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Error interno del servidor'
     });
   }
