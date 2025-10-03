@@ -11,7 +11,7 @@ const supabase = createClient(
 );
 
 // Ruta de login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req, res): Promise<void> => {
   try {
     const { email, password } = req.body;
 
@@ -97,7 +97,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Ruta de registro
-router.post('/register', async (req, res) => {
+router.post('/register', async (req, res): Promise<void> => {
   try {
     const { nombre, email, password, rol = 'deportista' } = req.body;
 
