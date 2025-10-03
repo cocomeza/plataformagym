@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { signUp } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +31,7 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const success = await register(nombre, email, password);
+    const success = await signUp(email, password, nombre);
     
     if (success) {
       router.push('/dashboard');

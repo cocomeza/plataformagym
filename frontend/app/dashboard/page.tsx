@@ -30,7 +30,7 @@ interface PaymentData {
 }
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
   const [attendance, setAttendance] = useState<AttendanceData[]>([]);
   const [payments, setPayments] = useState<PaymentData[]>([]);
@@ -179,7 +179,7 @@ export default function DashboardPage() {
                 Hola, {user?.nombre}
               </span>
               <button
-                onClick={logout}
+                onClick={signOut}
                 className="btn btn-secondary btn-sm"
               >
                 <LogOut className="h-4 w-4 mr-2" />
