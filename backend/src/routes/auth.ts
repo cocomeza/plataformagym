@@ -13,6 +13,13 @@ const supabase = createClient(
 // Ruta de login
 router.post('/login', async (req, res): Promise<void> => {
   try {
+    console.log('🔍 Login endpoint called');
+    console.log('🔍 Environment variables check:', {
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasJwtSecret: !!process.env.JWT_SECRET
+    });
+    
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -99,6 +106,13 @@ router.post('/login', async (req, res): Promise<void> => {
 // Ruta de registro
 router.post('/register', async (req, res): Promise<void> => {
   try {
+    console.log('🔍 Register endpoint called');
+    console.log('🔍 Environment variables check:', {
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasJwtSecret: !!process.env.JWT_SECRET
+    });
+    
     const { nombre, email, password, rol = 'deportista' } = req.body;
 
     if (!nombre || !email || !password) {
