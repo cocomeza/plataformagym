@@ -1,64 +1,18 @@
 {
-  "name": "plataforma-gym",
+  "name": "gym-platform-testing",
   "version": "1.0.0",
-  "description": "Plataforma web para gestión de gimnasio",
-  "private": true,
+  "description": "Scripts de testing para la plataforma del gimnasio",
+  "main": "test-system.js",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit",
-    "netlify-build": "next build"
+    "test": "node test-system.js",
+    "test-health": "node -e \"require('axios').get('https://gym-platform-backend.onrender.com/health').then(r => console.log('✅ Health OK:', r.data)).catch(e => console.log('❌ Health FAILED:', e.message))\"",
+    "test-register": "node -e \"require('axios').post('https://gym-platform-backend.onrender.com/auth/register', {email: 'test@test.com', password: 'test123', name: 'Test User', role: 'cliente'}).then(r => console.log('✅ Register OK:', r.data)).catch(e => console.log('❌ Register FAILED:', e.response?.data || e.message))\"",
+    "test-login": "node -e \"require('axios').post('https://gym-platform-backend.onrender.com/auth/login', {email: 'test@test.com', password: 'test123'}).then(r => console.log('✅ Login OK:', r.data)).catch(e => console.log('❌ Login FAILED:', e.response?.data || e.message))\""
   },
   "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.8.7",
-    "@supabase/auth-helpers-react": "^0.4.2",
-    "@supabase/supabase-js": "^2.38.4",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "axios": "^1.6.2",
-    "bcryptjs": "^3.0.2",
-    "clsx": "^2.0.0",
-    "date-fns": "^2.30.0",
-    "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.294.0",
-    "next": "14.0.4",
-    "qrcode": "^1.5.4",
-    "qrcode.react": "^3.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-hook-form": "^7.48.2",
-    "react-hot-toast": "^2.4.1",
-    "react-query": "^3.39.3",
-    "recharts": "^2.8.0",
-    "tailwind-merge": "^2.0.0",
-    "tailwindcss": "^3.4.18",
-    "postcss": "^8.5.6",
-    "autoprefixer": "^10.4.21",
-    "typescript": "^5.3.3",
-    "@types/react": "^18.2.45",
-    "@types/react-dom": "^18.2.18",
-    "@types/node": "^20.10.5",
-    "@types/qrcode": "^1.5.5"
+    "axios": "^1.6.0"
   },
-  "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
-    "eslint": "^8.56.0",
-    "eslint-config-next": "14.0.4"
-  },
-  "engines": {
-    "node": "20.11.0",
-    "npm": ">=8.0.0"
-  },
-  "keywords": [
-    "gym",
-    "gimnasio",
-    "nextjs",
-    "nodejs",
-    "supabase"
-  ],
+  "keywords": ["testing", "gym", "platform", "api"],
   "author": "Tu Nombre",
   "license": "MIT"
 }

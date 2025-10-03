@@ -127,7 +127,7 @@ export default function AdminPage() {
   const generateQR = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/attendance/qr/generate', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/qr/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
