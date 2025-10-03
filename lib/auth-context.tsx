@@ -2,14 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   nombre: string;
   rol: 'admin' | 'deportista';
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
