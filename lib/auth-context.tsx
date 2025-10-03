@@ -1,12 +1,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface User {
   id: string;
@@ -42,13 +36,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar si hay un usuario autenticado al cargar la app
     const checkUser = async () => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          // Aquí podrías validar el token con tu backend
-          // Por ahora, asumimos que si hay token, el usuario está autenticado
           const userData = localStorage.getItem('user');
           if (userData) {
             setUser(JSON.parse(userData));
