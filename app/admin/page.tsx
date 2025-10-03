@@ -48,7 +48,7 @@ interface Attendance {
 }
 
 export default function AdminPage() {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -202,7 +202,7 @@ export default function AdminPage() {
                 Hola, {user?.nombre}
               </span>
               <button
-                onClick={logout}
+                onClick={signOut}
                 className="btn btn-secondary btn-sm"
               >
                 <LogOut className="h-4 w-4 mr-2" />
