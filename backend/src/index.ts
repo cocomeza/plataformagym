@@ -25,7 +25,8 @@ app.use(cors({
   origin: [
     process.env.CORS_ORIGIN || 'http://localhost:3000',
     'https://*.vercel.app', // Permitir cualquier subdominio de Vercel
-    'https://*.onrender.com' // Permitir cualquier subdominio de Render
+    'https://*.onrender.com', // Permitir cualquier subdominio de Render
+    'https://*.netlify.app' // Permitir cualquier subdominio de Netlify
   ],
   credentials: true
 }));
