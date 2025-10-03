@@ -249,4 +249,12 @@ router.get('/debug/env', (req, res) => {
   });
 });
 
+// Ruta simple para verificar que el código se ejecuta
+router.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Auth routes funcionando correctamente',
+    timestamp: new Date().toISOString()
+  });
+});
+
 export default router;
