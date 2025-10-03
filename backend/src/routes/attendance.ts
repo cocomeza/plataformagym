@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
 
 // Extender Request para incluir user
@@ -22,7 +21,7 @@ const supabase = createClient(
 );
 
 // Middleware de autenticación
-const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -41,8 +40,8 @@ const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextF
   }
 };
 
-// Generar código QR para asistencia
-router.post('/qr/generate', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+// Generar código de 4 dígitos para asistencia
+router.post('/code/generate', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
     
@@ -54,14 +53,15 @@ router.post('/qr/generate', authenticateToken, async (req: AuthenticatedRequest,
       .single();
 
     if (!user || user.rol !== 'admin') {
-      return res.status(403).json({ error: 'Solo los administradores pueden generar códigos QR' });
+      res.status(403).json({ error: 'Solo los administradores pueden generar códigos' });
+      return;
     }
 
     // Buscar o crear sesión activa para hoy
     const today = new Date().toISOString().split('T')[0];
     let { data: session } = await supabase
       .from('sessions')
-      .select('*')
+      . select('*')
       .eq('fecha', today)
       .eq('activa', true)
       .single();
@@ -79,65 +79,62 @@ router.post('/qr/generate', authenticateToken, async (req: AuthenticatedRequest,
 
       if (sessionError) {
         console.error('Error creando sesión:', sessionError);
-        return res.status(500).json({ error: 'Error al crear la sesión' });
+        res.status(500).json({ error: 'Error al crear la sesión' });
+        return;
       }
       session = newSession;
     }
 
-    // Generar código QR único
-    const qrData = {
+    // Generar código de 4 dígitos aleatorio
+    const attendanceCode = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // Datos del código
+    const codeData = {
       sessionId: session.id,
+      code: attendanceCode,
       timestamp: Date.now(),
-      expiresAt: Date.now() + (parseInt(process.env.QR_EXPIRY_MINUTES || '5') * 60 * 1000)
+      expiresAt: Date.now() + (parseInt(process.env.CODE_EXPIRY_MINUTES || '10') * 60 * 1000)
     };
 
-    const qrCode = jwt.sign(qrData, process.env.JWT_SECRET!);
-    
-    // Generar imagen QR
-    const qrImageUrl = await QRCode.toDataURL(qrCode, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
+    // Firmar el código con JWT
+    const codeToken = jwt.sign(codeData, process.env.JWT_SECRET!);
 
-    // Guardar QR en la base de datos
-    const { data: qrRecord, error: qrError } = await supabase
-      .from('qr_codes')
+    // Guardar código en la base de datos
+    const { data: codeRecord, error: codeError } = await supabase
+      .from('attendance_codes')
       .insert({
         session_id: session.id,
-        codigo: qrCode,
-        expira_en: new Date(qrData.expiresAt).toISOString(),
+        codigo: attendanceCode,
+        token_codigo: codeToken,
+        expira_en: new Date(codeData.expiresAt).toISOString(),
         usado: false
       })
       .select()
       .single();
 
-    if (qrError) {
-      console.error('Error guardando QR:', qrError);
+    if (codeError) {
+      console.error('Error guardando código:', codeError);
+      // Continuamos aunque haya error, el código puede usarse
     }
 
     res.json({
       success: true,
-      qrCode,
-      qrImageUrl,
+      attendanceCode,
       sessionId: session.id,
-      expiresAt: qrData.expiresAt,
-      expiresIn: parseInt(process.env.QR_EXPIRY_MINUTES || '5')
+      expiresAt: codeData.expiresAt,
+      expiresIn: parseInt(process.env.CODE_EXPIRY_MINUTES || '10')
     });
     return;
 
   } catch (error) {
-    console.error('Error generando QR:', error);
+    console.error('Error generando código:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
     return;
   }
 });
 
-// Escanear código QR para marcir asistencia
-router.post('/qr/scan', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+// Validar y usar código por deportista
+router.post('/code/validate', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
     
@@ -149,49 +146,51 @@ router.post('/qr/scan', authenticateToken, async (req: AuthenticatedRequest, res
       .single();
 
     if (!user || user.rol !== 'deportista') {
-      return res.status(403).json({ error: 'Solo los deportistas pueden marcar asistencia' });
+      res.status(403).json({ error: 'Solo los deportistas pueden marcar asistencia' });
+      return;
     }
 
-    const { qrCode } = req.body;
+    const { code } = req.body;
 
-    if (!qrCode) {
-      return res.status(400).json({ error: 'Código QR requerido' });
+    if (!code || code.length !== 4 || !/^\d{4}$/.test(code)) {
+      res.status(400).json({ error: 'Código debe ser de 4 dígitos' });
+      return;
     }
 
-    // Verificar y decodificar QR
-    let qrData;
-    try {
-      qrData = jwt.verify(qrCode, process.env.JWT_SECRET!) as any;
-    } catch (error) {
-      return res.status(400).json({ error: 'Código QR inválido' });
-    }
-
-    // Verificar si el QR ha expirado
-    if (Date.now() > qrData.expiresAt) {
-      return res.status(400).json({ error: 'El código QR ha expirado' });
-    }
-
-    // Verificar si el QR ya fue usado
-    const { data: qrRecord } = await supabase
-      .from('qr_codes')
-      .select('usado')
-      .eq('codigo', qrCode)
+    // Buscar código en base de datos
+    const { data: codeRecord } = await supabase
+      .from('attendance_codes')
+      .select('*, sessions(*)')
+      .eq('codigo', code)
+      .eq('usado', false)
       .single();
 
-    if (qrRecord?.usado) {
-      return res.status(400).json({ error: 'Este código QR ya fue utilizado' });
+    if (!codeRecord) {
+      res.status(400).json({ error: 'Código inválido o ya utilizado' });
+      return;
+    }
+
+    // Verificar si el código ha expirado
+    const now = new Date();
+    const expiresAt = new Date(codeRecord.expira_en);
+    
+    if (now > expiresAt) {
+      res.status(400).json({ error: 'El código ha expirado' });
+      return;
     }
 
     // Verificar si ya marcó asistencia hoy
+    const today = new Date().toISOString().split('T')[0];
     const { data: existingAttendance } = await supabase
       .from('attendance')
       .select('id')
       .eq('user_id', userId)
-      .eq('session_id', qrData.sessionId)
+      .eq('session_id', codeRecord.session_id)
       .single();
 
     if (existingAttendance) {
-      return res.status(400).json({ error: 'Ya marcaste asistencia hoy' });
+      res.status(400).json({ error: 'Ya marcaste asistencia hoy' });
+      return;
     }
 
     // Marcar asistencia
@@ -199,8 +198,8 @@ router.post('/qr/scan', authenticateToken, async (req: AuthenticatedRequest, res
       .from('attendance')
       .insert({
         user_id: userId,
-        session_id: qrData.sessionId,
-        metodo: 'qr',
+        session_id: codeRecord.session_id,
+        metodo: 'codigo',
         fecha_hora: new Date().toISOString()
       })
       .select()
@@ -208,31 +207,33 @@ router.post('/qr/scan', authenticateToken, async (req: AuthenticatedRequest, res
 
     if (attendanceError) {
       console.error('Error marcando asistencia:', attendanceError);
-      return res.status(500).json({ error: 'Error al marcar asistencia' });
+      res.status(500).json({ error: 'Error al marcar asistencia' });
+      return;
     }
 
-    // Marcar QR como usado
+    // Marcar código como usado
     await supabase
-      .from('qr_codes')
+      .from('attendance_codes')
       .update({ usado: true })
-      .eq('codigo', qrCode);
+      .eq('id', codeRecord.id);
 
     res.json({
       success: true,
       message: 'Asistencia marcada correctamente',
-      attendance
+      attendance,
+      userName: user.rol // Información básica
     });
     return;
 
   } catch (error) {
-    console.error('Error escaneando QR:', error);
+    console.error('Error validando código:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
     return;
   }
 });
 
 // Obtener asistencias del usuario
-router.get('/user/:userId', async (req: Request, res: Response): Promise<void> => {
+router.get('/user/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     
@@ -250,7 +251,8 @@ router.get('/user/:userId', async (req: Request, res: Response): Promise<void> =
 
     if (error) {
       console.error('Error obteniendo asistencias:', error);
-      return res.status(500).json({ error: 'Error al obtener asistencias' });
+      res.status(500).json({ error: 'Error al obtener asistencias' });
+      return;
     }
 
     res.json({ success: true, attendance });
@@ -264,7 +266,7 @@ router.get('/user/:userId', async (req: Request, res: Response): Promise<void> =
 });
 
 // Obtener estadísticas de asistencias (solo admin)
-router.get('/stats', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/stats', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
     
@@ -276,7 +278,8 @@ router.get('/stats', authenticateToken, async (req: AuthenticatedRequest, res: R
       .single();
 
     if (!user || user.rol !== 'admin') {
-      return res.status(403).json({ error: 'Solo los administradores pueden ver estadísticas' });
+      res.status(403).json({ error: 'Solo los administradores pueden ver estadísticas' });
+      return;
     }
 
     const today = new Date().toISOString().split('T')[0];

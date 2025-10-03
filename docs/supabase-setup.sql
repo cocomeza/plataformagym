@@ -30,7 +30,7 @@ CREATE TABLE attendance (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    metodo VARCHAR(10) NOT NULL CHECK (metodo IN ('qr', 'manual')),
+    metodo VARCHAR(10) NOT NULL CHECK (metodo IN ('qr', 'manual', 'codigo')),
     fecha_hora TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user_id, session_id)
@@ -49,11 +49,22 @@ CREATE TABLE payments (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Tabla de códigos QR
+-- Tabla de códigos QR (para sistema QR - mantener por compatibilidad)
 CREATE TABLE qr_codes (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     codigo TEXT NOT NULL UNIQUE,
+    expira_en TIMESTAMP WITH TIME ZONE NOT NULL,
+    usado BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabla de códigos de asistencia (4 dígitos)
+CREATE TABLE attendance_codes (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    codigo VARCHAR(4) NOT NULL,
+    token_codigo TEXT NOT NULL,
     expira_en TIMESTAMP WITH TIME ZONE NOT NULL,
     usado BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -70,6 +81,8 @@ CREATE INDEX idx_payments_fecha ON payments(fecha);
 CREATE INDEX idx_payments_estado ON payments(estado);
 CREATE INDEX idx_qr_codes_codigo ON qr_codes(codigo);
 CREATE INDEX idx_qr_codes_expira_en ON qr_codes(expira_en);
+CREATE INDEX idx_attendance_codes_codigo ON attendance_codes(codigo);
+CREATE INDEX idx_attendance_codes_expira_en ON attendance_codes(expira_en);
 
 -- Función para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -93,6 +106,7 @@ ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE qr_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_codes ENABLE ROW LEVEL SECURITY;
 
 -- Política para usuarios: pueden ver y editar su propio perfil
 CREATE POLICY "Users can view own profile" ON users
@@ -155,6 +169,15 @@ CREATE POLICY "Admins can manage all payments" ON payments
 
 -- Política para códigos QR: solo admins pueden gestionar
 CREATE POLICY "Admins can manage QR codes" ON qr_codes
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM users 
+            WHERE id = auth.uid() AND rol = 'admin'
+        )
+    );
+
+-- Política para códigos de asistencia: solo admins pueden gestionar
+CREATE POLICY "Admins can manage attendance codes" ON attendance_codes
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM users 
