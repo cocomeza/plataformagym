@@ -16,7 +16,7 @@ export default function QRScanner({ onScan, onClose, isLoading }: QRScannerProps
 
   // Verificar si tiene cámara disponible
   useEffect(() => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
       setHasCamera(true);
     }
   }, []);

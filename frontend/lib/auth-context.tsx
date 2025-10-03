@@ -14,9 +14,12 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (login: string, password: string) => Promise<boolean>;
   register: (nombre: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  signOut: () => void;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (nombre: string, email: string, password: string) => Promise<boolean>;
   refreshToken: () => Promise<boolean>;
 }
 
@@ -160,6 +163,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     refreshToken,
+    signOut: logout,
+    signIn: login,
+    signUp: register,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

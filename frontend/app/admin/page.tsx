@@ -8,12 +8,14 @@ import {
   Users, 
   CreditCard, 
   BarChart3, 
-  QrCode,
+  ClipboardCheck,
   LogOut,
   Plus,
   Search,
   Filter,
-  Download
+  Download,
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
 import QRCode from 'qrcode.react';
 
@@ -59,8 +61,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [qrExpiry, setQrExpiry] = useState<number | null>(null);
+  const [attendanceCode, setAttendanceCode] = useState<string | null>(null);
+  const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
@@ -137,13 +139,13 @@ export default function AdminPage() {
       const data = await response.json();
       
       if (data.success) {
-        setQrCode(data.attendanceCode);
-        setQrExpiry(data.expiresAt);
+        setAttendanceCode(data.attendanceCode);
+        setCodeExpiry(data.expiresAt);
         
         // Auto-hide code after expiry
         setTimeout(() => {
-          setQrCode(null);
-          setQrExpiry(null);
+          setAttendanceCode(null);
+          setCodeExpiry(null);
         }, data.expiresIn * 60 * 1000);
       }
     } catch (error) {
@@ -188,24 +190,30 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-gradient-to-r from-orange-600 to-red-600 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <Dumbbell className="h-8 w-8 text-primary-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">
-                Panel de Administración
-              </h1>
+              <div className="bg-white/10 p-2 rounded-lg">
+                <Dumbbell className="h-8 w-8 text-white" />
+              </div>
+              <div className="ml-3">
+                <h1 className="text-2xl font-bold text-white">
+                  POWER GYM ADMIN
+                </h1>
+                <p className="text-orange-200 text-sm">Panel de Administración</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Hola, {user?.nombre}
-              </span>
+              <div className="text-white/90">
+                <span className="text-sm font-medium">¡Hola!</span>
+                <span className="block text-lg font-bold">{user?.nombre}</span>
+              </div>
               <button
                 onClick={signOut}
-                className="btn btn-secondary btn-sm"
+                className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors border border-white/30"
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <LogOut className="h-4 w-4 mr-2 inline" />
                 Cerrar Sesión
               </button>
             </div>
@@ -215,24 +223,24 @@ export default function AdminPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
+        <div className="bg-white rounded-t-xl border-b border-gray-200 mb-8 shadow-sm">
+          <nav className="flex">
             {[
-              { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
-              { id: 'users', name: 'Usuarios', icon: Users },
-              { id: 'attendance', name: 'Asistencias', icon: QrCode },
-              { id: 'payments', name: 'Pagos', icon: CreditCard },
+              { id: 'dashboard', name: 'Dashboard', icon: BarChart3, color: 'blue' },
+              { id: 'users', name: 'Usuarios', icon: Users, color: 'green' },
+              { id: 'attendance', name: 'Asistencias', icon: ClipboardCheck, color: 'purple' },
+              { id: 'payments', name: 'Pagos', icon: CreditCard, color: 'orange' },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex items-center py-4 px-6 border-b-2 font-medium text-sm transition-all duration-200 ${
                   activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? `border-${tab.color}-500 text-${tab.color}-600 bg-${tab.color}-50`
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <tab.icon className="h-4 w-4 mr-2" />
+                <tab.icon className={`h-5 w-5 mr-3 ${activeTab === tab.id ? `text-${tab.color}-500` : 'text-gray-400'}`} />
                 {tab.name}
               </button>
             ))}
@@ -244,74 +252,54 @@ export default function AdminPage() {
           <div className="space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="card">
-                <div className="card-content">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <Users className="h-8 w-8 text-primary-600" />
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Total Usuarios
-                      </h3>
-                      <p className="text-2xl font-bold text-primary-600">
-                        {stats.totalUsers}
-                      </p>
-                    </div>
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium opacity-90 mb-1">Total Usuarios</h3>
+                    <p className="text-3xl font-bold">{stats.totalUsers}</p>
+                    <span className="text-sm opacity-75">Atletas registrados</span>
+                  </div>
+                  <div className="bg-white/20 rounded-full p-3">
+                    <Users className="h-6 w-6" />
                   </div>
                 </div>
               </div>
 
-              <div className="card">
-                <div className="card-content">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <QrCode className="h-8 w-8 text-success-600" />
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Asistencias Hoy
-                      </h3>
-                      <p className="text-2xl font-bold text-success-600">
-                        {stats.totalAttendance}
-                      </p>
-                    </div>
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium opacity-90 mb-1">Asistencias Hoy</h3>
+                    <p className="text-3xl font-bold">{stats.totalAttendance}</p>
+                    <span className="text-sm opacity-75">Entrenamientos activos</span>
+                  </div>
+                  <div className="bg-white/20 rounded-full p-3">
+                    <Activity className="h-6 w-6" />
                   </div>
                 </div>
               </div>
 
-              <div className="card">
-                <div className="card-content">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <CreditCard className="h-8 w-8 text-warning-600" />
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Pagos del Mes
-                      </h3>
-                      <p className="text-2xl font-bold text-warning-600">
-                        {stats.totalPayments}
-                      </p>
-                    </div>
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium opacity-90 mb-1">Pagos del Mes</h3>
+                    <p className="text-3xl font-bold">{stats.totalPayments}</p>
+                    <span className="text-sm opacity-75">Membresías activas</span>
+                  </div>
+                  <div className="bg-white/20 rounded-full p-3">
+                    <CreditCard className="h-6 w-6" />
                   </div>
                 </div>
               </div>
 
-              <div className="card">
-                <div className="card-content">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <CreditCard className="h-8 w-8 text-danger-600" />
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Morosos
-                      </h3>
-                      <p className="text-2xl font-bold text-danger-600">
-                        {stats.pendingPayments}
-                      </p>
-                    </div>
+              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium opacity-90 mb-1">Pendientes</h3>
+                    <p className="text-3xl font-bold">{stats.pendingPayments}</p>
+                    <span className="text-sm opacity-75">Por pagar</span>
+                  </div>
+                  <div className="bg-white/20 rounded-full p-3">
+                    <ShieldCheck className="h-6 w-6" />
                   </div>
                 </div>
               </div>
@@ -328,18 +316,18 @@ export default function AdminPage() {
                 </p>
               </div>
               <div className="card-content">
-                {qrCode ? (
+                {attendanceCode ? (
                   <div className="text-center">
                     <div className="mb-6">
                       <div className="inline-block bg-primary-100 rounded-2xl p-8 border-4 border-primary-500">
                         <div className="text-6xl font-bold text-primary-700 font-mono">
-                          {qrCode}
+                          {attendanceCode}
                         </div>
                       </div>
                     </div>
                     <div className="bg-yellow-50 p-4 rounded-md mb-4">
                       <p className="text-sm text-yellow-800 font-medium">
-                        ⏰ Código válido por {qrExpiry ? Math.ceil((qrExpiry - Date.now()) / 60000) : 0} minutos
+                        ⏰ Código válido por {codeExpiry ? Math.ceil((codeExpiry - Date.now()) / 60000) : 0} minutos
                       </p>
                       <p className="text-xs text-yellow-700 mt-1">
                         Los deportistas deben ingresar este código en su dashboard
@@ -348,7 +336,7 @@ export default function AdminPage() {
                     <div className="space-y-2">
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(qrCode);
+                          navigator.clipboard.writeText(attendanceCode);
                           alert('Código copiado al portapapeles');
                         }}
                         className="btn btn-primary btn-md mr-2"
@@ -357,8 +345,8 @@ export default function AdminPage() {
                       </button>
                       <button
                         onClick={() => {
-                          setQrCode(null);
-                          setQrExpiry(null);
+                          setAttendanceCode(null);
+                          setCodeExpiry(null);
                         }}
                         className="btn btn-secondary btn-md"
                       >
