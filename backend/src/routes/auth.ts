@@ -83,7 +83,7 @@ router.post('/login', async (req, res) => {
       .update({ refresh_token: refreshToken })
       .eq('id', user.id);
 
-    res.json({
+    return res.json({
       success: true,
       token,
       refreshToken,
@@ -206,7 +206,7 @@ router.post('/register', async (req, res) => {
       .update({ refresh_token: refreshToken })
       .eq('id', user.id);
 
-    res.json({
+    return res.json({
       success: true,
       token,
       refreshToken,
