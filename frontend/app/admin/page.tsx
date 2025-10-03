@@ -124,10 +124,10 @@ export default function AdminPage() {
     }
   };
 
-  const generateQR = async () => {
+  const generateAttendanceCode = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/qr/generate', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -137,17 +137,17 @@ export default function AdminPage() {
       const data = await response.json();
       
       if (data.success) {
-        setQrCode(data.qrCode);
+        setQrCode(data.attendanceCode);
         setQrExpiry(data.expiresAt);
         
-        // Auto-hide QR after expiry
+        // Auto-hide code after expiry
         setTimeout(() => {
           setQrCode(null);
           setQrExpiry(null);
         }, data.expiresIn * 60 * 1000);
       }
     } catch (error) {
-      console.error('Error generando QR:', error);
+      console.error('Error generando código:', error);
     }
   };
 
@@ -317,43 +317,72 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* QR Generator */}
+            {/* Attendance Code Generator */}
             <div className="card">
               <div className="card-header">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Generar Código QR para Asistencia
+                  🔢 Generar Código de Asistencia
                 </h3>
                 <p className="text-sm text-gray-600">
-                  Genera un código QR que los deportistas pueden escanear para marcar asistencia
+                  Genera un código de 4 dígitos que los deportistas pueden ingresar para marcar asistencia
                 </p>
               </div>
               <div className="card-content">
                 {qrCode ? (
                   <div className="text-center">
-                    <div className="mb-4">
-                      <QRCode value={qrCode} size={300} />
+                    <div className="mb-6">
+                      <div className="inline-block bg-primary-100 rounded-2xl p-8 border-4 border-primary-500">
+                        <div className="text-6xl font-bold text-primary-700 font-mono">
+                          {qrCode}
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Código QR válido por {qrExpiry ? Math.ceil((qrExpiry - Date.now()) / 60000) : 0} minutos
-                    </p>
-                    <button
-                      onClick={() => {
-                        setQrCode(null);
-                        setQrExpiry(null);
-                      }}
-                      className="btn btn-secondary btn-md"
-                    >
-                      Cerrar QR
-                    </button>
+                    <div className="bg-yellow-50 p-4 rounded-md mb-4">
+                      <p className="text-sm text-yellow-800 font-medium">
+                        ⏰ Código válido por {qrExpiry ? Math.ceil((qrExpiry - Date.now()) / 60000) : 0} minutos
+                      </p>
+                      <p className="text-xs text-yellow-700 mt-1">
+                        Los deportistas deben ingresar este código en su dashboard
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(qrCode);
+                          alert('Código copiado al portapapeles');
+                        }}
+                        className="btn btn-primary btn-md mr-2"
+                      >
+                        📋 Copiar Código
+                      </button>
+                      <button
+                        onClick={() => {
+                          setQrCode(null);
+                          setQrExpiry(null);
+                        }}
+                        className="btn btn-secondary btn-md"
+                      >
+                        ❌ Cerrar Código
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center">
-                    <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <div className="mb-6">
+                      <div className="inline-block bg-gray-100 rounded-2xl p-8">
+                        <div className="text-6xl font-bold text-gray-500 font-mono">
+                          ----
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Haz clic en el botón para generar un código de asistencia
+                    </p>
                     <button
-                      onClick={generateQR}
+                      onClick={generateAttendanceCode}
                       className="btn btn-primary btn-lg"
                     >
-                      Generar Código QR
+                      🔢 Generar Código Asistencia
                     </button>
                   </div>
                 )}

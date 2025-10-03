@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import QRScanner from '@/components/QRScanner';
+import AttendanceCodeInput from '@/components/AttendanceCodeInput';
 import { 
   Dumbbell, 
   QrCode, 
@@ -117,35 +117,35 @@ export default function DashboardPage() {
     }
   };
 
-  const scanQR = () => {
+  const markAttendance = () => {
     setShowQRScanner(true);
   };
 
-  const handleQRScan = async (qrCode: string) => {
+  const handleAttendanceCode = async (code: string) => {
     setScanning(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/qr/scan', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/validate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ qrCode }),
+        body: JSON.stringify({ code }),
       });
 
       const data = await response.json();
       
       if (data.success) {
-        alert('¡Asistencia marcada correctamente!');
+        alert('✅ ¡Asistencia marcada correctamente!');
         setShowQRScanner(false);
         loadData(); // Recargar datos
       } else {
-        alert(data.error || 'Error al marcar asistencia');
+        alert('❌ ' + (data.error || 'Error al marcar asistencia'));
       }
     } catch (error) {
-      console.error('Error escaneando QR:', error);
-      alert('Error de conexión');
+      console.error('Error marcando asistencia:', error);
+      alert('❌ Error de conexión');
     } finally {
       setScanning(false);
     }
@@ -312,23 +312,25 @@ export default function DashboardPage() {
           <div className="card">
             <div className="card-header">
               <h3 className="text-lg font-semibold text-gray-900">
-                Escanear QR
+                🔢 Código de Asistencia
               </h3>
               <p className="text-sm text-gray-600">
-                Usa la cámara para escanear el código QR del gimnasio
+                Ingresa el código de 4 dígitos para marcar tu asistencia
               </p>
             </div>
             <div className="card-content">
               <div className="text-center">
-                <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">🔢</span>
+                </div>
                 <button
-                  onClick={scanQR}
+                  onClick={markAttendance}
                   className="btn btn-success btn-md"
                 >
-                  Escanear QR
+                  🔢 Marcar Asistencia
                 </button>
                 <p className="text-xs text-gray-500 mt-2">
-                  Funcionalidad de cámara (implementar en producción)
+                  Ingresa el código de 4 dígitos del administrador
                 </p>
               </div>
             </div>
@@ -405,10 +407,10 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* QR Scanner Modal */}
+      {/* Attendance Code Input Modal */}
       {showQRScanner && (
-        <QRScanner
-          onScan={handleQRScan}
+        <AttendanceCodeInput
+          onSubmit={handleAttendanceCode}
           onClose={() => setShowQRScanner(false)}
           isLoading={scanning}
         />
