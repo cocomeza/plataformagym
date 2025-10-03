@@ -1,3 +1,9 @@
+# Backend files (exclude from frontend build)
+backend/dist/
+backend/node_modules/
+backend/.env
+backend/.env.local
+
 # Dependencies
 node_modules/
 npm-debug.log*
