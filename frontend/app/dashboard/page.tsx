@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import QRScanner from '@/components/QRScanner';
 import { 
   Dumbbell, 
   QrCode, 
@@ -37,6 +38,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrExpiry, setQrExpiry] = useState<number | null>(null);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -114,34 +117,37 @@ export default function DashboardPage() {
     }
   };
 
-  const scanQR = async () => {
-    // En una implementación real, aquí usarías la cámara del dispositivo
-    const qrCode = prompt('Escanea el código QR o ingrésalo manualmente:');
-    
-    if (qrCode) {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/qr/scan', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ qrCode }),
-        });
+  const scanQR = () => {
+    setShowQRScanner(true);
+  };
 
-        const data = await response.json();
-        
-        if (data.success) {
-          alert('¡Asistencia marcada correctamente!');
-          loadData(); // Recargar datos
-        } else {
-          alert(data.error || 'Error al marcar asistencia');
-        }
-      } catch (error) {
-        console.error('Error escaneando QR:', error);
-        alert('Error de conexión');
+  const handleQRScan = async (qrCode: string) => {
+    setScanning(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/qr/scan', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ qrCode }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('¡Asistencia marcada correctamente!');
+        setShowQRScanner(false);
+        loadData(); // Recargar datos
+      } else {
+        alert(data.error || 'Error al marcar asistencia');
       }
+    } catch (error) {
+      console.error('Error escaneando QR:', error);
+      alert('Error de conexión');
+    } finally {
+      setScanning(false);
     }
   };
 
@@ -398,6 +404,15 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <QRScanner
+          onScan={handleQRScan}
+          onClose={() => setShowQRScanner(false)}
+          isLoading={scanning}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,17 @@
 import { Router } from 'express';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
+
+// Extender Request para incluir user
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    rol: string;
+  };
+}
 
 const router = Router();
 
@@ -13,12 +22,13 @@ const supabase = createClient(
 );
 
 // Middleware de autenticación
-const authenticateToken = (req: Request, res: Response, next: any) => {
+const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Token de acceso requerido' });
+    res.status(401).json({ error: 'Token de acceso requerido' });
+    return;
   }
 
   try {
@@ -26,14 +36,15 @@ const authenticateToken = (req: Request, res: Response, next: any) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(403).json({ error: 'Token inválido' });
+    res.status(403).json({ error: 'Token inválido' });
+    return;
   }
 };
 
 // Generar código QR para asistencia
-router.post('/qr/generate', authenticateToken, async (req: Request, res: Response) => {
+router.post('/qr/generate', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user!.userId;
     
     // Verificar que es admin
     const { data: user } = await supabase
@@ -116,17 +127,19 @@ router.post('/qr/generate', authenticateToken, async (req: Request, res: Respons
       expiresAt: qrData.expiresAt,
       expiresIn: parseInt(process.env.QR_EXPIRY_MINUTES || '5')
     });
+    return;
 
   } catch (error) {
     console.error('Error generando QR:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+    return;
   }
 });
 
-// Escanear código QR para marcar asistencia
-router.post('/qr/scan', authenticateToken, async (req: Request, res: Response) => {
+// Escanear código QR para marcir asistencia
+router.post('/qr/scan', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user!.userId;
     
     // Verificar que es deportista
     const { data: user } = await supabase
@@ -209,15 +222,17 @@ router.post('/qr/scan', authenticateToken, async (req: Request, res: Response) =
       message: 'Asistencia marcada correctamente',
       attendance
     });
+    return;
 
   } catch (error) {
     console.error('Error escaneando QR:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+    return;
   }
 });
 
 // Obtener asistencias del usuario
-router.get('/user/:userId', async (req: Request, res: Response) => {
+router.get('/user/:userId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
     
@@ -239,17 +254,19 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
     }
 
     res.json({ success: true, attendance });
+    return;
 
   } catch (error) {
     console.error('Error en endpoint de asistencias:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+    return;
   }
 });
 
 // Obtener estadísticas de asistencias (solo admin)
-router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
+router.get('/stats', authenticateToken, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user!.userId;
     
     // Verificar que es admin
     const { data: user } = await supabase
@@ -285,10 +302,12 @@ router.get('/stats', authenticateToken, async (req: Request, res: Response) => {
         totalUsers: totalUsers || 0
       }
     });
+    return;
 
   } catch (error) {
     console.error('Error obteniendo estadísticas:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+    return;
   }
 });
 
