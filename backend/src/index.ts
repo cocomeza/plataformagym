@@ -22,13 +22,35 @@ app.use(helmet());
 
 // Configuración de CORS
 app.use(cors({
-  origin: [
-    process.env.CORS_ORIGIN || 'http://localhost:3000',
-    'https://*.vercel.app', // Permitir cualquier subdominio de Vercel
-    'https://*.onrender.com', // Permitir cualquier subdominio de Render
-    'https://*.netlify.app' // Permitir cualquier subdominio de Netlify
-  ],
-  credentials: true
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (como Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Lista de orígenes permitidos
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://gym-platform-cocomeza.netlify.app',
+      'https://gym-platform-frontend.netlify.app'
+    ];
+    
+    // Verificar si el origen está en la lista
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // Verificar patrones dinámicos
+      if (origin.endsWith('.netlify.app') || 
+          origin.endsWith('.vercel.app') || 
+          origin.endsWith('.onrender.com')) {
+        callback(null, true);
+      } else {
+        callback(new Error('No permitido por CORS'));
+      }
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Rate limiting
