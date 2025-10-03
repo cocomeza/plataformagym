@@ -11,7 +11,7 @@ const supabase = createClient(
 );
 
 // Ruta de login
-router.post('/login', async (req, res): Promise<void> => {
+router.post('/login', async (req, res) => {
   try {
     console.log('🔍 Login endpoint called');
     console.log('🔍 Environment variables check:', {
@@ -104,7 +104,7 @@ router.post('/login', async (req, res): Promise<void> => {
 });
 
 // Ruta de registro
-router.post('/register', async (req, res): Promise<void> => {
+router.post('/register', async (req, res) => {
   try {
     console.log('🔍 Register endpoint called');
     console.log('🔍 Environment variables check:', {
