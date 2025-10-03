@@ -222,4 +222,17 @@ router.get('/me', (req, res) => {
   res.json({ message: 'Get user info endpoint - Implementar lógica de usuario actual' });
 });
 
+// Ruta de debug para verificar variables de entorno
+router.get('/debug/env', (req, res) => {
+  res.json({
+    hasSupabaseUrl: !!process.env.SUPABASE_URL,
+    hasSupabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
+    hasSupabaseServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    hasJwtSecret: !!process.env.JWT_SECRET,
+    hasJwtRefreshSecret: !!process.env.JWT_REFRESH_SECRET,
+    supabaseUrl: process.env.SUPABASE_URL ? 'Configurado' : 'No configurado',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 export default router;
