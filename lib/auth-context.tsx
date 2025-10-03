@@ -1,60 +1,70 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface User {
   id: string;
-  nombre: string;
   email: string;
+  nombre: string;
   rol: 'admin' | 'deportista';
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (nombre: string, email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  refreshToken: () => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signUp: (email: string, password: string, nombre: string) => Promise<{ success: boolean; error?: string }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
-  // Verificar token al cargar la app
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Verificar si el token es válido
+    // Verificar si hay un usuario autenticado al cargar la app
+    const checkUser = async () => {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 > Date.now()) {
-          // Token válido, obtener datos del usuario
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Aquí podrías validar el token con tu backend
+          // Por ahora, asumimos que si hay token, el usuario está autenticado
           const userData = localStorage.getItem('user');
           if (userData) {
             setUser(JSON.parse(userData));
           }
-        } else {
-          // Token expirado, intentar refresh
-          refreshToken();
         }
       } catch (error) {
-        // Token inválido
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
+        console.error('Error checking user:', error);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    checkUser();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (email: string, password: string) => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -67,108 +77,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          nombre: data.user.nombre,
+          rol: data.user.rol,
+        };
+
         localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        toast.success('¡Bienvenido!');
-        return true;
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+
+        return { success: true };
       } else {
-        toast.error(data.error || 'Error al iniciar sesión');
-        return false;
+        return { success: false, error: data.error };
       }
     } catch (error) {
-      console.error('Error en login:', error);
-      toast.error('Error de conexión');
-      return false;
+      return { success: false, error: 'Error de conexión' };
     }
   };
 
-  const register = async (nombre: string, email: string, password: string): Promise<boolean> => {
+  const signUp = async (email: string, password: string, nombre: string) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ nombre, email, password }),
+        body: JSON.stringify({ email, password, nombre }),
       });
 
       const data = await response.json();
 
       if (data.success) {
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          nombre: data.user.nombre,
+          rol: data.user.rol,
+        };
+
         localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        toast.success('¡Cuenta creada exitosamente!');
-        return true;
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+
+        return { success: true };
       } else {
-        toast.error(data.error || 'Error al crear la cuenta');
-        return false;
+        return { success: false, error: data.error };
       }
     } catch (error) {
-      console.error('Error en registro:', error);
-      toast.error('Error de conexión');
-      return false;
+      return { success: false, error: 'Error de conexión' };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    setUser(null);
-    toast.success('Sesión cerrada');
-    router.push('/');
-  };
-
-  const refreshToken = async (): Promise<boolean> => {
+  const signOut = async () => {
     try {
-      const refreshTokenValue = localStorage.getItem('refreshToken');
-      if (!refreshTokenValue) return false;
-
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken: refreshTokenValue }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        return true;
-      } else {
-        logout();
-        return false;
-      }
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
     } catch (error) {
-      console.error('Error refrescando token:', error);
-      logout();
-      return false;
+      console.error('Error signing out:', error);
     }
   };
 
   const value = {
     user,
     loading,
-    login,
-    register,
-    logout,
-    refreshToken,
+    signIn,
+    signUp,
+    signOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
-}
+};
