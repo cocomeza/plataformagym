@@ -85,16 +85,6 @@ export async function POST(request: NextRequest) {
       expiresAt: Date.now() + (parseInt(process.env.QR_EXPIRY_MINUTES || '5') * 60 * 1000)
     };
 
-    // Verificar que JWT_SECRET esté configurado
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: 'Configuración del servidor incompleta' },
-        { status: 500 }
-      );
-    }
-
-    const jwtSecret = process.env.JWT_SECRET as string;
-
     const qrCode = jwt.sign(qrData, jwtSecret);
     
     // Generar imagen QR
