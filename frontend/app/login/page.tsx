@@ -134,7 +134,8 @@ export default function LoginPage() {
           </h3>
           <div className="text-xs text-yellow-700 space-y-1">
             <p><strong>Admin:</strong> admin@test.com / admin123</p>
-            <p><strong>Deportista:</strong> debug401@example.com / debug123</p>
+            <p><strong>Deportista:</strong> juan@test.com / deportista123</p>
+            <p><strong>Deportista:</strong> maria@test.com / deportista123</p>
             <p className="text-yellow-600 italic">O crea una cuenta nueva</p>
           </div>
         </div>

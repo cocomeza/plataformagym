@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { 
   Dumbbell, 
   QrCode, 
@@ -38,15 +39,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-
-    if (user.rol !== 'deportista') {
-      router.push('/admin');
-      return;
-    }
 
     loadData();
   }, [user, router]);
@@ -179,7 +171,8 @@ export default function DashboardPage() {
     new Date(lastPayment.fecha) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedRoute requiredRole="deportista">
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -440,6 +433,7 @@ export default function DashboardPage() {
         </div>
       </main>
 
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

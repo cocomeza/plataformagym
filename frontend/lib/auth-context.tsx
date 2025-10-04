@@ -32,34 +32,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Verificar token al cargar la app
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Verificar si el token es válido
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp * 1000 > Date.now()) {
-          // Token válido, obtener datos del usuario
-          const userData = localStorage.getItem('user');
-          if (userData) {
-            setUser(JSON.parse(userData));
+    const initializeAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          // Verificar si el token es válido
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp * 1000 > Date.now()) {
+            // Token válido, obtener datos del usuario
+            const userData = localStorage.getItem('user');
+            if (userData) {
+              setUser(JSON.parse(userData));
+            }
+          } else {
+            // Token expirado, limpiar datos
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            setUser(null);
           }
-        } else {
-          // Token expirado, intentar refresh
-          refreshToken();
+        } catch (error) {
+          // Token inválido, limpiar datos
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          setUser(null);
         }
-      } catch (error) {
-        // Token inválido
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (nombre: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
