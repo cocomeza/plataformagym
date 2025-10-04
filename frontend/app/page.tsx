@@ -156,7 +156,10 @@ export default function HomePage() {
                   onError={(e) => {
                     // Fallback si la imagen no existe
                     e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                    const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (nextElement) {
+                      nextElement.style.display = 'flex';
+                    }
                   }}
                 />
                 <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl h-96 lg:h-[500px] flex items-center justify-center" style={{display: 'none'}}>
@@ -257,7 +260,10 @@ export default function HomePage() {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                  const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (nextElement) {
+                    nextElement.style.display = 'flex';
+                  }
                 }}
               />
               <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl h-64 flex items-center justify-center absolute inset-0" style={{display: 'none'}}>
@@ -275,7 +281,10 @@ export default function HomePage() {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                  const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (nextElement) {
+                    nextElement.style.display = 'flex';
+                  }
                 }}
               />
               <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl h-64 flex items-center justify-center absolute inset-0" style={{display: 'none'}}>
@@ -293,7 +302,10 @@ export default function HomePage() {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                  const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                  if (nextElement) {
+                    nextElement.style.display = 'flex';
+                  }
                 }}
               />
               <div className="bg-gradient-to-br from-success-600 to-success-800 rounded-xl h-64 flex items-center justify-center absolute inset-0" style={{display: 'none'}}>
