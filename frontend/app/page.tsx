@@ -60,7 +60,6 @@ export default function HomePage() {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8">
               <a href="#inicio" className="text-gray-700 hover:text-primary-600 transition-colors">Inicio</a>
-              <a href="#caracteristicas" className="text-gray-700 hover:text-primary-600 transition-colors">Características</a>
               <a href="#galeria" className="text-gray-700 hover:text-primary-600 transition-colors">Galería</a>
               <a href="#precios" className="text-gray-700 hover:text-primary-600 transition-colors">Precios</a>
             </nav>
@@ -94,7 +93,6 @@ export default function HomePage() {
             <div className="md:hidden py-4 border-t">
               <nav className="flex flex-col space-y-4">
                 <a href="#inicio" className="text-gray-700 hover:text-primary-600">Inicio</a>
-                <a href="#caracteristicas" className="text-gray-700 hover:text-primary-600">Características</a>
                 <a href="#galeria" className="text-gray-700 hover:text-primary-600">Galería</a>
                 <a href="#precios" className="text-gray-700 hover:text-primary-600">Precios</a>
                 <div className="flex flex-col space-y-2 pt-4 border-t">
@@ -132,20 +130,20 @@ export default function HomePage() {
                 Control de asistencias, pagos, usuarios y estadísticas en tiempo real.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={() => router.push('/register')}
+            <button
+              onClick={() => router.push('/register')}
                   className="px-8 py-4 bg-primary-600 text-white rounded-lg text-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center"
-                >
-                  Comenzar Ahora
+            >
+              Comenzar Ahora
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </button>
+            </button>
                 <button className="px-8 py-4 border-2 border-white text-white rounded-lg text-lg font-semibold hover:bg-white hover:text-gray-900 transition-colors flex items-center justify-center">
                   <Play className="mr-2 h-5 w-5" />
                   Ver Demo
-                </button>
-              </div>
-            </div>
-            
+            </button>
+          </div>
+        </div>
+
             {/* Hero Image */}
             <div className="relative">
               <div className="rounded-2xl overflow-hidden h-96 lg:h-[500px]">
@@ -175,69 +173,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="caracteristicas" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Características Principales
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Todo lo que necesitas para gestionar tu gimnasio de manera profesional y eficiente
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-16 h-16 bg-primary-100 rounded-lg flex items-center justify-center mb-6">
-                <Clock className="h-8 w-8 text-primary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Control de Asistencia
-              </h3>
-              <p className="text-gray-600">
-                Sistema de códigos de 4 dígitos que expiran en 30 segundos para máxima seguridad
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-16 h-16 bg-success-100 rounded-lg flex items-center justify-center mb-6">
-                <Users className="h-8 w-8 text-success-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Gestión de Usuarios
-              </h3>
-              <p className="text-gray-600">
-                Administra deportistas, roles y estados de activación con facilidad
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-16 h-16 bg-warning-100 rounded-lg flex items-center justify-center mb-6">
-                <CreditCard className="h-8 w-8 text-warning-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Control de Pagos
-              </h3>
-              <p className="text-gray-600">
-                Registra pagos en efectivo y transferencias con seguimiento completo
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-16 h-16 bg-secondary-100 rounded-lg flex items-center justify-center mb-6">
-                <BarChart3 className="h-8 w-8 text-secondary-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                Reportes y Estadísticas
-              </h3>
-              <p className="text-gray-600">
-                Dashboard completo con métricas y estadísticas en tiempo real
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Gallery Section */}
       <section id="galeria" className="py-20">
@@ -249,7 +184,7 @@ export default function HomePage() {
             <p className="text-xl text-gray-600">
               Espacios modernos y equipamiento de última generación
             </p>
-          </div>
+            </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Galería de imágenes del gimnasio */}
@@ -273,7 +208,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
               <img 
                 src="https://i.postimg.cc/rm15FLkf/gym-clases.jpg" 
@@ -294,7 +229,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            
+
             <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
               <img 
                 src="https://i.postimg.cc/d0BqqWfk/gym-cardio.jpg" 
@@ -402,12 +337,12 @@ export default function HomePage() {
                 >
                   Elegir Plan
                 </button>
-              </div>
-            </div>
+          </div>
+        </div>
 
             {/* Plan Premium */}
             <div className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-              <div className="text-center">
+            <div className="text-center">
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
                 <p className="text-gray-600 mb-6">Todos los días</p>
                 <div className="mb-8">
