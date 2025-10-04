@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { attendanceStorage } from '@/lib/attendance-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,24 +27,32 @@ export async function POST(request: NextRequest) {
     try {
       const decoded = jwt.verify(token, jwtSecret) as any;
       
-      // Aquí deberías validar el código contra una base de datos temporal
-      // Por ahora simulamos la validación
-      // En una implementación real, tendrías:
-      // 1. Una tabla temporal de códigos activos
-      // 2. Verificar que el código existe y no ha expirado
-      // 3. Verificar que el usuario no haya usado ya este código
-      // 4. Marcar la asistencia en la base de datos
-      // 5. Invalidar el código usado
-      
-      // Simulación de validación exitosa
-      const isValidCode = true; // En producción, esto vendría de la base de datos
+      // Simular validación del código (en producción esto vendría de la base de datos)
+      // Por ahora aceptamos cualquier código de 4 dígitos válido
+      const isValidCode = true;
       
       if (!isValidCode) {
         return NextResponse.json({ error: 'Código inválido o expirado' }, { status: 400 });
       }
       
-      // Aquí registrarías la asistencia en la base de datos
-      // const attendanceRecord = await createAttendanceRecord(decoded.userId, 'codigo');
+      // Verificar si el usuario ya marcó asistencia hoy
+      if (attendanceStorage.hasUserAttendedToday(decoded.userId)) {
+        return NextResponse.json({ error: 'Ya marcaste asistencia hoy' }, { status: 400 });
+      }
+      
+      // Crear el registro de asistencia
+      const attendanceRecord = {
+        id: Date.now().toString(),
+        userId: decoded.userId,
+        userName: decoded.nombre,
+        fecha_hora: new Date().toISOString(),
+        metodo: 'codigo',
+        codigo_usado: code,
+        created_at: new Date().toISOString()
+      };
+      
+      // Guardar en el storage temporal
+      attendanceStorage.addAttendance(attendanceRecord);
       
       return NextResponse.json({
         success: true,

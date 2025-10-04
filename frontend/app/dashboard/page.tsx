@@ -64,7 +64,8 @@ export default function DashboardPage() {
       
       if (attendanceResponse.ok) {
         const attendanceData = await attendanceResponse.json();
-        setAttendance(attendanceData);
+        setAttendance(attendanceData || []);
+        console.log('📊 Asistencias cargadas:', attendanceData);
       }
 
       // Cargar pagos
