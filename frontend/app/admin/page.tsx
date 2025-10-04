@@ -59,6 +59,7 @@ export default function AdminPage() {
   });
   const [users, setUsers] = useState<User[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [attendanceCode, setAttendanceCode] = useState<string | null>(null);
   const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
@@ -136,7 +137,21 @@ export default function AdminPage() {
       
       if (attendanceResponse.ok) {
         const attendanceData = await attendanceResponse.json();
-        setAttendance(attendanceData);
+        setAttendance(attendanceData || []);
+        console.log('📊 Asistencias cargadas:', attendanceData);
+      }
+
+      // Cargar pagos
+      const paymentsResponse = await fetch('/api/admin/payments', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (paymentsResponse.ok) {
+        const paymentsData = await paymentsResponse.json();
+        setPayments(paymentsData || []);
+        console.log('💰 Pagos cargados:', paymentsData);
       }
 
     } catch (error) {
@@ -847,9 +862,60 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="card-content">
-              <p className="text-gray-500 text-center py-8">
-                Funcionalidad de pagos en desarrollo...
-              </p>
+              <div className="overflow-x-auto">
+                <table className="table">
+                  <thead className="table-header">
+                    <tr className="table-row">
+                      <th className="table-head">Usuario</th>
+                      <th className="table-head">Monto</th>
+                      <th className="table-head">Método</th>
+                      <th className="table-head">Concepto</th>
+                      <th className="table-head">Fecha</th>
+                      <th className="table-head">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="table-body">
+                    {payments.length > 0 ? (
+                      payments.map((payment) => (
+                        <tr key={payment.id} className="table-row">
+                          <td className="table-cell">
+                            {payment.user ? payment.user.nombre : 'Usuario no encontrado'}
+                          </td>
+                          <td className="table-cell">
+                            ${payment.monto.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="table-cell">
+                            <span className={`badge ${
+                              payment.metodo === 'efectivo' ? 'badge-success' :
+                              payment.metodo === 'tarjeta' ? 'badge-primary' :
+                              payment.metodo === 'transferencia' ? 'badge-info' : 'badge-warning'
+                            }`}>
+                              {payment.metodo.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="table-cell">{payment.concepto}</td>
+                          <td className="table-cell">
+                            {new Date(payment.fecha).toLocaleDateString('es-AR')}
+                          </td>
+                          <td className="table-cell">
+                            <span className={`badge ${
+                              payment.estado === 'pagado' ? 'badge-success' : 'badge-danger'
+                            }`}>
+                              {payment.estado.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="table-row">
+                        <td colSpan={6} className="table-cell text-center text-gray-500 py-8">
+                          No hay pagos registrados
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
