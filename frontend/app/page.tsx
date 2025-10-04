@@ -146,13 +146,25 @@ export default function HomePage() {
               </div>
             </div>
             
-            {/* Hero Image Placeholder - Aquí iría una imagen de gimnasio */}
+            {/* Hero Image */}
             <div className="relative">
-              <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl h-96 lg:h-[500px] flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Dumbbell className="h-24 w-24 mx-auto mb-4 opacity-80" />
-                  <p className="text-xl font-semibold">Imagen del Gimnasio</p>
-                  <p className="text-sm opacity-75">Equipamiento moderno y espacios amplios</p>
+              <div className="rounded-2xl overflow-hidden h-96 lg:h-[500px]">
+                <img 
+                  src="/images/hero-gym.jpg" 
+                  alt="Gimnasio moderno con equipamiento profesional"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback si la imagen no existe
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+                <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl h-96 lg:h-[500px] flex items-center justify-center" style={{display: 'none'}}>
+                  <div className="text-center text-white">
+                    <Dumbbell className="h-24 w-24 mx-auto mb-4 opacity-80" />
+                    <p className="text-xl font-semibold">Imagen del Gimnasio</p>
+                    <p className="text-sm opacity-75">Equipamiento moderno y espacios amplios</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -237,23 +249,58 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Placeholder para imágenes del gimnasio */}
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl h-64 flex items-center justify-center">
-              <div className="text-center text-white">
-                <Dumbbell className="h-12 w-12 mx-auto mb-2 opacity-80" />
-                <p className="font-semibold">Área de Pesas</p>
+            {/* Galería de imágenes del gimnasio */}
+            <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
+              <img 
+                src="/images/gym-weights.jpg" 
+                alt="Área de pesas con equipamiento profesional"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                }}
+              />
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl h-64 flex items-center justify-center absolute inset-0" style={{display: 'none'}}>
+                <div className="text-center text-white">
+                  <Dumbbell className="h-12 w-12 mx-auto mb-2 opacity-80" />
+                  <p className="font-semibold">Área de Pesas</p>
+                </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl h-64 flex items-center justify-center">
-              <div className="text-center text-white">
-                <Users className="h-12 w-12 mx-auto mb-2 opacity-80" />
-                <p className="font-semibold">Clases Grupales</p>
+            
+            <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
+              <img 
+                src="/images/gym-classes.jpg" 
+                alt="Clases grupales en el gimnasio"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                }}
+              />
+              <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-xl h-64 flex items-center justify-center absolute inset-0" style={{display: 'none'}}>
+                <div className="text-center text-white">
+                  <Users className="h-12 w-12 mx-auto mb-2 opacity-80" />
+                  <p className="font-semibold">Clases Grupales</p>
+                </div>
               </div>
             </div>
-            <div className="bg-gradient-to-br from-success-600 to-success-800 rounded-xl h-64 flex items-center justify-center">
-              <div className="text-center text-white">
-                <Play className="h-12 w-12 mx-auto mb-2 opacity-80" />
-                <p className="font-semibold">Cardio</p>
+            
+            <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
+              <img 
+                src="/images/gym-cardio.jpg" 
+                alt="Área de cardio con bicicletas y equipamiento"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                }}
+              />
+              <div className="bg-gradient-to-br from-success-600 to-success-800 rounded-xl h-64 flex items-center justify-center absolute inset-0" style={{display: 'none'}}>
+                <div className="text-center text-white">
+                  <Play className="h-12 w-12 mx-auto mb-2 opacity-80" />
+                  <p className="font-semibold">Cardio</p>
+                </div>
               </div>
             </div>
           </div>
