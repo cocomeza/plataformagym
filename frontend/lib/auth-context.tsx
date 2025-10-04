@@ -47,14 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             // Token expirado, limpiar datos
             localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
             setUser(null);
           }
         } catch (error) {
           // Token inválido, limpiar datos
           localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
           setUser(null);
         }
@@ -79,7 +77,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.success) {
         localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
         localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
         toast.success('¡Bienvenido!');
@@ -109,7 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (data.success) {
         localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
         localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
         toast.success('¡Cuenta creada exitosamente!');
@@ -127,7 +123,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
     toast.success('Sesión cerrada');
@@ -135,33 +130,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshToken = async (): Promise<boolean> => {
-    try {
-      const refreshTokenValue = localStorage.getItem('refreshToken');
-      if (!refreshTokenValue) return false;
-
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken: refreshTokenValue }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        return true;
-      } else {
-        logout();
-        return false;
-      }
-    } catch (error) {
-      console.error('Error refrescando token:', error);
-      logout();
-      return false;
-    }
+    // Por ahora, simplemente retornar false ya que no implementamos refresh token
+    return false;
   };
 
   const value = {

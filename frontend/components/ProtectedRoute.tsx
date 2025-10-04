@@ -17,7 +17,6 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     if (!loading) {
@@ -35,13 +34,11 @@ export default function ProtectedRoute({
         }
         return;
       }
-
-      setIsChecking(false);
     }
   }, [user, loading, requiredRole, redirectTo, router]);
 
   // Mostrar loading mientras se verifica la autenticación
-  if (loading || isChecking) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
