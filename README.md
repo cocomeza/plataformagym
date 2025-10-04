@@ -105,11 +105,12 @@ plataforma-para-gym/
 - **Marcado automático** como leídas
 
 ### 🔢 Control de Asistencias
-- **Códigos temporales** de 4 dígitos
+- **Códigos temporales** de 4 dígitos generados por el admin
 - **Expiración en 30 segundos** para máxima seguridad
-- **Solo admins pueden generar** códigos
-- **Validación automática** de formato
-- **Historial completo** de asistencias
+- **Solo admins pueden generar** códigos de asistencia
+- **Validación automática** de formato y expiración
+- **Historial completo** de asistencias por usuario
+- **Prevención de doble asistencia** en el mismo día
 
 ## 🛠️ Instalación y Configuración
 
@@ -140,8 +141,8 @@ cp .env.local.example .env.local
 Editar `.env.local` con tus configuraciones:
 ```env
 JWT_SECRET=tu_secreto_jwt_muy_seguro
-NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
-SUPABASE_SERVICE_ROLE_KEY=tu_clave_de_supabase
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NODE_ENV=development
 ```
 
 4. **Ejecutar en modo desarrollo:**
@@ -242,15 +243,16 @@ http://localhost:3000
 ### Variables de Entorno de Producción
 ```env
 JWT_SECRET=secreto_muy_seguro_produccion
-NEXT_PUBLIC_SUPABASE_URL=url_produccion
-SUPABASE_SERVICE_ROLE_KEY=clave_produccion
+NEXT_PUBLIC_API_URL=https://tu-dominio.netlify.app
 NODE_ENV=production
+NEXT_TELEMETRY_DISABLED=1
+CI=true
 ```
 
 ## 🔮 Mejoras Futuras
 
 ### Funcionalidades Pendientes
-- [ ] **Base de datos real** (Supabase/PostgreSQL)
+- [ ] **Base de datos real** (PostgreSQL/MongoDB)
 - [ ] **Sistema de pagos** integrado (Stripe/MercadoPago)
 - [ ] **Notificaciones push** en tiempo real
 - [ ] **App móvil** (PWA o React Native)

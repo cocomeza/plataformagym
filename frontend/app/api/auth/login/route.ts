@@ -26,8 +26,9 @@ export async function POST(request: NextRequest) {
 
     // Verificar contraseña (sistema simple para demo)
     const validPasswords = {
-      'admin@gimnasio.com': 'admin123',
-      'deportista@gimnasio.com': 'deportista123'
+      'admin@test.com': 'admin123',
+      'juan@test.com': 'deportista123',
+      'maria@test.com': 'deportista123'
     };
 
     if (validPasswords[email as keyof typeof validPasswords] !== password) {
