@@ -20,10 +20,12 @@ const nextConfig = {
     return config;
   },
   
-  // Configuración para Netlify
-  output: 'export',
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  // Configuración para Netlify (solo en producción)
+  ...(process.env.NODE_ENV === 'production' && {
+    output: 'export',
+    trailingSlash: true,
+    skipTrailingSlashRedirect: true,
+  }),
 }
 
 module.exports = nextConfig

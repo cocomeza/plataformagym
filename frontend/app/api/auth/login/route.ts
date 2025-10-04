@@ -38,16 +38,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar que las variables de entorno estén configuradas
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { error: 'Configuración del servidor incompleta' },
-        { status: 500 }
-      );
-    }
-
-    // Generar JWT
-    const jwtSecret = process.env.JWT_SECRET as string;
+    // Generar JWT con secreto por defecto si no está configurado
+    const jwtSecret = process.env.JWT_SECRET || 'gym-platform-jwt-secret-key-2025';
 
     const token = jwt.sign(
       { 
