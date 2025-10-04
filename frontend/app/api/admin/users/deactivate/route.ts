@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { adminStorage } from '@/lib/admin-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,11 +32,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Solo los administradores pueden desactivar usuarios' }, { status: 403 });
       }
 
-      // Aquí deberías actualizar el usuario en la base de datos
-      // Por ejemplo: UPDATE users SET activo = false WHERE id = userId
-      // Por ahora simulamos la operación
+      // Actualizar el estado del usuario en el storage
+      const success = adminStorage.users.updateStatus(userId, false);
       
-      console.log(`Admin ${decoded.userId} desactivó al usuario ${userId}`);
+      if (!success) {
+        return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+      }
       
       return NextResponse.json({
         success: true,
@@ -83,11 +85,12 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Solo los administradores pueden reactivar usuarios' }, { status: 403 });
       }
 
-      // Aquí deberías actualizar el usuario en la base de datos
-      // Por ejemplo: UPDATE users SET activo = true WHERE id = userId
-      // Por ahora simulamos la operación
+      // Actualizar el estado del usuario en el storage
+      const success = adminStorage.users.updateStatus(userId, true);
       
-      console.log(`Admin ${decoded.userId} reactivó al usuario ${userId}`);
+      if (!success) {
+        return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+      }
       
       return NextResponse.json({
         success: true,

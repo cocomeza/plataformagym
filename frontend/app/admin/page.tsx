@@ -41,13 +41,11 @@ interface User {
 
 interface Attendance {
   id: string;
-  user_id: string;
-  session_id: string;
+  userId: string;
+  userName: string;
   metodo: string;
   fecha_hora: string;
-  user: {
-    nombre: string;
-  };
+  codigo_usado?: string;
 }
 
 export default function AdminPage() {
@@ -71,6 +69,20 @@ export default function AdminPage() {
     title: '',
     message: '',
     priority: 'medium'
+  });
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [userForm, setUserForm] = useState({
+    nombre: '',
+    email: '',
+    telefono: '',
+    rol: 'deportista'
+  });
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    userId: '',
+    monto: '',
+    metodo: 'efectivo',
+    concepto: ''
   });
 
   useEffect(() => {
@@ -257,6 +269,82 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Error creando notificación:', error);
+      alert('Error de conexión');
+    }
+  };
+
+  const createUser = async () => {
+    if (!userForm.nombre || !userForm.email || !userForm.telefono) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/users/add', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userForm),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Usuario creado correctamente');
+        setUserForm({
+          nombre: '',
+          email: '',
+          telefono: '',
+          rol: 'deportista'
+        });
+        setShowUserForm(false);
+        loadData(); // Recargar datos
+      } else {
+        alert(data.error || 'Error al crear usuario');
+      }
+    } catch (error) {
+      console.error('Error creando usuario:', error);
+      alert('Error de conexión');
+    }
+  };
+
+  const registerPayment = async () => {
+    if (!paymentForm.userId || !paymentForm.monto || !paymentForm.concepto) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/payments/add', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentForm),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Pago registrado correctamente');
+        setPaymentForm({
+          userId: '',
+          monto: '',
+          metodo: 'efectivo',
+          concepto: ''
+        });
+        setShowPaymentForm(false);
+        loadData(); // Recargar datos
+      } else {
+        alert(data.error || 'Error al registrar pago');
+      }
+    } catch (error) {
+      console.error('Error registrando pago:', error);
       alert('Error de conexión');
     }
   };
@@ -471,7 +559,10 @@ export default function AdminPage() {
                 <h3 className="text-lg font-semibold text-gray-900">
                   Gestión de Usuarios
                 </h3>
-                <button className="btn btn-primary btn-md">
+                <button 
+                  onClick={() => setShowUserForm(true)}
+                  className="btn btn-primary btn-md"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Nuevo Usuario
                 </button>
@@ -590,24 +681,32 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody className="table-body">
-                    {attendance.map((item) => (
-                      <tr key={item.id} className="table-row">
-                        <td className="table-cell">{item.user.nombre}</td>
-                        <td className="table-cell">
-                          {new Date(item.fecha_hora).toLocaleDateString('es-AR')}
-                        </td>
-                        <td className="table-cell">
-                          {new Date(item.fecha_hora).toLocaleTimeString('es-AR')}
-                        </td>
-                        <td className="table-cell">
-                          <span className={`badge ${
-                            item.metodo === 'qr' ? 'badge-success' : 'badge-warning'
-                          }`}>
-                            {item.metodo.toUpperCase()}
-                          </span>
+                    {attendance.length > 0 ? (
+                      attendance.map((item) => (
+                        <tr key={item.id} className="table-row">
+                          <td className="table-cell">{item.userName}</td>
+                          <td className="table-cell">
+                            {new Date(item.fecha_hora).toLocaleDateString('es-AR')}
+                          </td>
+                          <td className="table-cell">
+                            {new Date(item.fecha_hora).toLocaleTimeString('es-AR')}
+                          </td>
+                          <td className="table-cell">
+                            <span className={`badge ${
+                              item.metodo === 'codigo' ? 'badge-success' : 'badge-warning'
+                            }`}>
+                              {item.metodo.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr className="table-row">
+                        <td colSpan={4} className="table-cell text-center text-gray-500 py-8">
+                          No hay asistencias registradas hoy
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -738,7 +837,10 @@ export default function AdminPage() {
                 <h3 className="text-lg font-semibold text-gray-900">
                   Gestión de Pagos
                 </h3>
-                <button className="btn btn-primary btn-md">
+                <button 
+                  onClick={() => setShowPaymentForm(true)}
+                  className="btn btn-primary btn-md"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Registrar Pago
                 </button>
@@ -752,6 +854,176 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Agregar Usuario */}
+      {showUserForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Agregar Nuevo Usuario
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  value={userForm.nombre}
+                  onChange={(e) => setUserForm({...userForm, nombre: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ej: Juan Pérez"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="juan@ejemplo.com"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  value={userForm.telefono}
+                  onChange={(e) => setUserForm({...userForm, telefono: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="+54 11 1234-5678"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Rol
+                </label>
+                <select
+                  value={userForm.rol}
+                  onChange={(e) => setUserForm({...userForm, rol: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="deportista">Deportista</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowUserForm(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={createUser}
+                className="btn btn-primary btn-md"
+              >
+                Crear Usuario
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Registrar Pago */}
+      {showPaymentForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Registrar Pago
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Usuario
+                </label>
+                <select
+                  value={paymentForm.userId}
+                  onChange={(e) => setPaymentForm({...paymentForm, userId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Seleccionar usuario</option>
+                  {users.filter(u => u.rol === 'deportista').map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Monto
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={paymentForm.monto}
+                  onChange={(e) => setPaymentForm({...paymentForm, monto: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.00"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Método de Pago
+                </label>
+                <select
+                  value={paymentForm.metodo}
+                  onChange={(e) => setPaymentForm({...paymentForm, metodo: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="efectivo">Efectivo</option>
+                  <option value="tarjeta">Tarjeta</option>
+                  <option value="transferencia">Transferencia</option>
+                  <option value="cheque">Cheque</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Concepto
+                </label>
+                <input
+                  type="text"
+                  value={paymentForm.concepto}
+                  onChange={(e) => setPaymentForm({...paymentForm, concepto: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Mensualidad, Clase especial, etc."
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowPaymentForm(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={registerPayment}
+                className="btn btn-primary btn-md"
+              >
+                Registrar Pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
