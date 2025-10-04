@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import AttendanceCodeInput from '@/components/AttendanceCodeInput';
 import { 
   Dumbbell, 
   QrCode, 
@@ -12,9 +11,9 @@ import {
   LogOut, 
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Bell
 } from 'lucide-react';
-import QRCode from 'qrcode.react';
 
 interface AttendanceData {
   id: string;
@@ -35,11 +34,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [attendance, setAttendance] = useState<AttendanceData[]>([]);
   const [payments, setPayments] = useState<PaymentData[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [qrExpiry, setQrExpiry] = useState<number | null>(null);
-  const [showQRScanner, setShowQRScanner] = useState(false);
-  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -83,6 +79,20 @@ export default function DashboardPage() {
         setPayments(paymentsData);
       }
 
+      // Cargar notificaciones
+      const notificationsResponse = await fetch('/api/notifications', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (notificationsResponse.ok) {
+        const notificationsData = await notificationsResponse.json();
+        if (notificationsData.success) {
+          setNotifications(notificationsData.notifications);
+        }
+      }
+
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -90,66 +100,65 @@ export default function DashboardPage() {
     }
   };
 
-  const generateQR = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/qr/generate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        setQrCode(data.qrCode);
-        setQrExpiry(data.expiresAt);
+  const markAttendance = async () => {
+    const code = prompt('Ingresa el código de asistencia de 4 dígitos:');
+    
+    if (code && code.length === 4 && /^\d{4}$/.test(code)) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/attendance/code/validate', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ code }),
+        });
+
+        const data = await response.json();
         
-        // Auto-hide QR after expiry
-        setTimeout(() => {
-          setQrCode(null);
-          setQrExpiry(null);
-        }, data.expiresIn * 60 * 1000);
+        if (data.success) {
+          alert('¡Asistencia marcada correctamente!');
+          loadData(); // Recargar datos
+        } else {
+          alert(data.error || 'Código inválido o expirado');
+        }
+      } catch (error) {
+        console.error('Error validando código:', error);
+        alert('Error de conexión');
       }
-    } catch (error) {
-      console.error('Error generando QR:', error);
+    } else if (code) {
+      alert('Por favor ingresa un código válido de 4 dígitos');
     }
   };
 
-  const markAttendance = () => {
-    setShowQRScanner(true);
-  };
-
-  const handleAttendanceCode = async (code: string) => {
-    setScanning(true);
+  const markNotificationAsRead = async (notificationId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/validate', {
-        method: 'POST',
+      const response = await fetch('/api/notifications/mark-read', {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ notificationId }),
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        alert('✅ ¡Asistencia marcada correctamente!');
-        setShowQRScanner(false);
-        loadData(); // Recargar datos
-      } else {
-        alert('❌ ' + (data.error || 'Error al marcar asistencia'));
+      if (response.ok) {
+        // Actualizar el estado local
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId ? { ...notif, isRead: true } : notif
+          )
+        );
       }
     } catch (error) {
-      console.error('Error marcando asistencia:', error);
-      alert('❌ Error de conexión');
-    } finally {
-      setScanning(false);
+      console.error('Error marcando notificación como leída:', error);
     }
   };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   if (loading) {
     return (
@@ -184,6 +193,19 @@ export default function DashboardPage() {
               <span className="text-sm text-gray-600">
                 Hola, {user?.nombre}
               </span>
+              
+              {/* Notificaciones */}
+              <div className="relative">
+                <button className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
+                  <Bell className="h-6 w-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
               <button
                 onClick={signOut}
                 className="btn btn-secondary btn-sm"
@@ -262,80 +284,90 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* QR Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Attendance Code Section */}
+        <div className="grid grid-cols-1 gap-8 mb-8">
           <div className="card">
             <div className="card-header">
               <h3 className="text-lg font-semibold text-gray-900">
-                Marcar Asistencia
+                🔢 Marcar Asistencia
               </h3>
               <p className="text-sm text-gray-600">
-                Escanea el código QR del gimnasio para marcar tu asistencia
-              </p>
-            </div>
-            <div className="card-content">
-              {qrCode ? (
-                <div className="text-center">
-                  <div className="mb-4">
-                    <QRCode value={qrCode} size={200} />
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Código QR válido por {qrExpiry ? Math.ceil((qrExpiry - Date.now()) / 60000) : 0} minutos
-                  </p>
-                  <button
-                    onClick={() => {
-                      setQrCode(null);
-                      setQrExpiry(null);
-                    }}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Cerrar QR
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <button
-                    onClick={generateQR}
-                    className="btn btn-primary btn-md"
-                  >
-                    Generar Código QR
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    O pide al recepcionista que marque tu asistencia
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h3 className="text-lg font-semibold text-gray-900">
-                🔢 Código de Asistencia
-              </h3>
-              <p className="text-sm text-gray-600">
-                Ingresa el código de 4 dígitos para marcar tu asistencia
+                Ingresa el código de 4 dígitos que te proporciona el administrador
               </p>
             </div>
             <div className="card-content">
               <div className="text-center">
-                <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🔢</span>
+                <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl">🔢</span>
                 </div>
                 <button
                   onClick={markAttendance}
-                  className="btn btn-success btn-md"
+                  className="btn btn-success btn-lg"
                 >
                   🔢 Marcar Asistencia
                 </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Ingresa el código de 4 dígitos del administrador
+                <p className="text-sm text-gray-500 mt-4">
+                  Pide el código de 4 dígitos al recepcionista o administrador del gimnasio
                 </p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Notificaciones */}
+        {notifications.length > 0 && (
+          <div className="card mb-8">
+            <div className="card-header">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  🔔 Notificaciones
+                </h3>
+                <span className="text-sm text-gray-500">
+                  {unreadCount} sin leer
+                </span>
+              </div>
+            </div>
+            <div className="card-content">
+              <div className="space-y-3">
+                {notifications.slice(0, 3).map((notification) => (
+                  <div 
+                    key={notification.id} 
+                    className={`p-4 rounded-lg border-l-4 ${
+                      notification.priority === 'high' ? 'border-red-500 bg-red-50' :
+                      notification.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                      'border-blue-500 bg-blue-50'
+                    } ${!notification.isRead ? 'font-medium' : 'opacity-75'}`}
+                    onClick={() => !notification.isRead && markNotificationAsRead(notification.id)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          {notification.title}
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(notification.createdAt).toLocaleString('es-AR')}
+                        </p>
+                      </div>
+                      {!notification.isRead && (
+                        <div className="w-2 h-2 bg-red-500 rounded-full ml-2"></div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {notifications.length > 3 && (
+                <div className="mt-4 text-center">
+                  <button className="text-sm text-primary-600 hover:text-primary-700">
+                    Ver todas las notificaciones ({notifications.length})
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -407,14 +439,6 @@ export default function DashboardPage() {
         </div>
       </main>
 
-      {/* Attendance Code Input Modal */}
-      {showQRScanner && (
-        <AttendanceCodeInput
-          onSubmit={handleAttendanceCode}
-          onClose={() => setShowQRScanner(false)}
-          isLoading={scanning}
-        />
-      )}
     </div>
   );
 }

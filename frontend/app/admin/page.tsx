@@ -15,9 +15,10 @@ import {
   Filter,
   Download,
   Activity,
-  ShieldCheck
+  ShieldCheck,
+  UserX,
+  UserCheck
 } from 'lucide-react';
-import QRCode from 'qrcode.react';
 
 interface DashboardStats {
   totalUsers: number;
@@ -64,6 +65,13 @@ export default function AdminPage() {
   const [attendanceCode, setAttendanceCode] = useState<string | null>(null);
   const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showNotificationForm, setShowNotificationForm] = useState(false);
+  const [notificationForm, setNotificationForm] = useState({
+    type: 'gym_announcement',
+    title: '',
+    message: '',
+    priority: 'medium'
+  });
 
   useEffect(() => {
     if (!user) {
@@ -129,7 +137,7 @@ export default function AdminPage() {
   const generateAttendanceCode = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/generate', {
+      const response = await fetch('/api/attendance/code/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -139,7 +147,7 @@ export default function AdminPage() {
       const data = await response.json();
       
       if (data.success) {
-        setAttendanceCode(data.attendanceCode);
+        setAttendanceCode(data.code);
         setCodeExpiry(data.expiresAt);
         
         // Auto-hide code after expiry
@@ -175,6 +183,80 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Error marcando asistencia:', error);
+      alert('Error de conexión');
+    }
+  };
+
+  const toggleUserStatus = async (userId: string, userName: string, isActive: boolean) => {
+    const action = isActive ? 'desactivar' : 'reactivar';
+    const confirmMessage = isActive 
+      ? `¿Estás seguro de que quieres desactivar a ${userName}?\n\nEsto impedirá que pueda acceder al gimnasio.`
+      : `¿Estás seguro de que quieres reactivar a ${userName}?\n\nEsto permitirá que vuelva a acceder al gimnasio.`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const method = isActive ? 'POST' : 'PUT';
+      
+      const response = await fetch('/api/admin/users/deactivate', {
+        method: method,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`Usuario ${action}do correctamente`);
+        loadData(); // Recargar datos
+      } else {
+        alert(data.error || `Error al ${action} usuario`);
+      }
+    } catch (error) {
+      console.error(`Error ${action}do usuario:`, error);
+      alert('Error de conexión');
+    }
+  };
+
+  const createNotification = async () => {
+    if (!notificationForm.title || !notificationForm.message) {
+      alert('Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notificationForm),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert('Notificación creada correctamente');
+        setNotificationForm({
+          type: 'gym_announcement',
+          title: '',
+          message: '',
+          priority: 'medium'
+        });
+        setShowNotificationForm(false);
+      } else {
+        alert(data.error || 'Error al crear notificación');
+      }
+    } catch (error) {
+      console.error('Error creando notificación:', error);
       alert('Error de conexión');
     }
   };
@@ -229,6 +311,7 @@ export default function AdminPage() {
               { id: 'dashboard', name: 'Dashboard', icon: BarChart3, color: 'blue' },
               { id: 'users', name: 'Usuarios', icon: Users, color: 'green' },
               { id: 'attendance', name: 'Asistencias', icon: ClipboardCheck, color: 'purple' },
+              { id: 'notifications', name: 'Notificaciones', icon: ShieldCheck, color: 'indigo' },
               { id: 'payments', name: 'Pagos', icon: CreditCard, color: 'orange' },
             ].map((tab) => (
               <button
@@ -327,7 +410,7 @@ export default function AdminPage() {
                     </div>
                     <div className="bg-yellow-50 p-4 rounded-md mb-4">
                       <p className="text-sm text-yellow-800 font-medium">
-                        ⏰ Código válido por {codeExpiry ? Math.ceil((codeExpiry - Date.now()) / 60000) : 0} minutos
+                        ⏰ Código válido por {codeExpiry ? Math.ceil((codeExpiry - Date.now()) / 1000) : 0} segundos
                       </p>
                       <p className="text-xs text-yellow-700 mt-1">
                         Los deportistas deben ingresar este código en su dashboard
@@ -364,7 +447,8 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 mb-4">
-                      Haz clic en el botón para generar un código de asistencia
+                      Haz clic en el botón para generar un código de asistencia<br/>
+                      <span className="text-xs text-orange-600 font-medium">⚠️ El código expira en 30 segundos</span>
                     </p>
                     <button
                       onClick={generateAttendanceCode}
@@ -403,6 +487,7 @@ export default function AdminPage() {
                       <th className="table-head">Rol</th>
                       <th className="table-head">Asistencias</th>
                       <th className="table-head">Estado Pago</th>
+                      <th className="table-head">Estado</th>
                       <th className="table-head">Acciones</th>
                     </tr>
                   </thead>
@@ -427,12 +512,40 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td className="table-cell">
+                          <span className={`badge ${
+                            user.activo ? 'badge-success' : 'badge-danger'
+                          }`}>
+                            {user.activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+                        <td className="table-cell">
                           <div className="flex space-x-2">
                             <button
                               onClick={() => markAttendance(user.id)}
                               className="btn btn-success btn-sm"
+                              disabled={!user.activo}
+                              title={!user.activo ? 'Usuario inactivo' : 'Marcar asistencia'}
                             >
                               Marcar Asistencia
+                            </button>
+                            <button
+                              onClick={() => toggleUserStatus(user.id, user.nombre, user.activo)}
+                              className={`btn btn-sm ${
+                                user.activo ? 'btn-danger' : 'btn-success'
+                              }`}
+                              title={user.activo ? 'Desactivar usuario' : 'Reactivar usuario'}
+                            >
+                              {user.activo ? (
+                                <>
+                                  <UserX className="h-4 w-4 mr-1" />
+                                  Desactivar
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="h-4 w-4 mr-1" />
+                                  Reactivar
+                                </>
+                              )}
                             </button>
                           </div>
                         </td>
@@ -497,6 +610,121 @@ export default function AdminPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <div className="card">
+              <div className="card-header">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    🔔 Gestión de Notificaciones
+                  </h3>
+                  <button 
+                    onClick={() => setShowNotificationForm(!showNotificationForm)}
+                    className="btn btn-primary btn-md"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nueva Notificación
+                  </button>
+                </div>
+              </div>
+              
+              {showNotificationForm && (
+                <div className="card-content border-t">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo de Notificación
+                      </label>
+                      <select 
+                        value={notificationForm.type}
+                        onChange={(e) => setNotificationForm({...notificationForm, type: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="gym_announcement">Anuncio del Gimnasio</option>
+                        <option value="payment_reminder">Recordatorio de Pago</option>
+                        <option value="attendance_reminder">Recordatorio de Asistencia</option>
+                        <option value="promotion">Promoción/Oferta</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Título
+                      </label>
+                      <input 
+                        type="text"
+                        value={notificationForm.title}
+                        onChange={(e) => setNotificationForm({...notificationForm, title: e.target.value})}
+                        placeholder="Título de la notificación"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mensaje
+                      </label>
+                      <textarea 
+                        value={notificationForm.message}
+                        onChange={(e) => setNotificationForm({...notificationForm, message: e.target.value})}
+                        placeholder="Mensaje de la notificación"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Prioridad
+                      </label>
+                      <select 
+                        value={notificationForm.priority}
+                        onChange={(e) => setNotificationForm({...notificationForm, priority: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="low">Baja</option>
+                        <option value="medium">Media</option>
+                        <option value="high">Alta</option>
+                      </select>
+                    </div>
+                    
+                    <div className="flex space-x-3">
+                      <button 
+                        onClick={createNotification}
+                        className="btn btn-success btn-md"
+                      >
+                        Crear Notificación
+                      </button>
+                      <button 
+                        onClick={() => setShowNotificationForm(false)}
+                        className="btn btn-secondary btn-md"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="card">
+              <div className="card-header">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Notificaciones Enviadas
+                </h3>
+              </div>
+              <div className="card-content">
+                <div className="text-center py-8 text-gray-500">
+                  <ShieldCheck className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p>Aquí se mostrarán las notificaciones enviadas</p>
+                  <p className="text-sm">Funcionalidad en desarrollo...</p>
+                </div>
               </div>
             </div>
           </div>
