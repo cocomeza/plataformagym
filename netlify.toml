@@ -24,11 +24,7 @@
   # Variable JWT requerida
   JWT_SECRET = "gym-platform-jwt-secret-key-2025"
 
-# Deshabilitar el plugin de Next.js que causa problemas
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-  [plugins.inputs]
-    disable = true
+# Plugin de Next.js deshabilitado - no se requiere configuración
 
 # Redirecciones para SPA
 [[redirects]]
