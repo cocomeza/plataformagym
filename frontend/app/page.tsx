@@ -150,7 +150,7 @@ export default function HomePage() {
             <div className="relative">
               <div className="rounded-2xl overflow-hidden h-96 lg:h-[500px]">
                 <img 
-                  src="/images/hero-gym.jpg" 
+                  src="https://i.postimg.cc/qBcNNLCt/hero-gym.jpg" 
                   alt="Gimnasio moderno con equipamiento profesional"
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -252,7 +252,7 @@ export default function HomePage() {
             {/* Galería de imágenes del gimnasio */}
             <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
               <img 
-                src="/images/gym-weights.jpg" 
+                src="https://i.postimg.cc/667NS5BJ/gym-weights.jpg" 
                 alt="Área de pesas con equipamiento profesional"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
@@ -270,7 +270,7 @@ export default function HomePage() {
             
             <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
               <img 
-                src="/images/gym-classes.jpg" 
+                src="https://i.postimg.cc/rm15FLkf/gym-clases.jpg" 
                 alt="Clases grupales en el gimnasio"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
@@ -288,7 +288,7 @@ export default function HomePage() {
             
             <div className="relative rounded-xl overflow-hidden h-64 group cursor-pointer">
               <img 
-                src="/images/gym-cardio.jpg" 
+                src="https://i.postimg.cc/d0BqqWfk/gym-cardio.jpg" 
                 alt="Área de cardio con bicicletas y equipamiento"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
