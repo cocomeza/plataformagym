@@ -3,7 +3,7 @@
   base = "frontend"
   
   # Comando de build
-  command = "npm run build"
+  command = "npm ci && npm run build"
   
   # Directorio de publicación
   publish = "frontend/out"
@@ -14,6 +14,12 @@
   
   # Variables de entorno para el build
   NODE_ENV = "production"
+  
+  # Variables para Next.js
+  NEXT_TELEMETRY_DISABLED = "1"
+  
+  # Variables para el build
+  CI = "true"
 
 # Redirecciones para SPA
 [[redirects]]
