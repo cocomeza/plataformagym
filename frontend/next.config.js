@@ -20,8 +20,8 @@ const nextConfig = {
     return config;
   },
   
-  // Configuración para Netlify (solo en producción)
-  ...(process.env.NODE_ENV === 'production' && {
+  // Configuración para Netlify (solo en build de producción)
+  ...(process.env.NETLIFY === 'true' && {
     output: 'export',
     trailingSlash: true,
     skipTrailingSlashRedirect: true,
