@@ -116,11 +116,18 @@ export default function AdminDashboard() {
       setAttendance(attendanceData || []);
       console.log('📊 Asistencias cargadas:', attendanceData);
 
-      // Cargar pagos desde Supabase
+      // Cargar pagos desde Supabase con fallback a local
       console.log('💰 Cargando pagos desde Supabase...');
       const paymentsData = await supabaseUtils.getAllPayments();
-      console.log('💰 Pagos obtenidos:', paymentsData);
-      setPayments(paymentsData);
+      
+      if (paymentsData.length === 0) {
+        console.log('💡 Usando datos locales para pagos');
+        const localPayments = adminStorage.payments.getAll();
+        setPayments(localPayments || []);
+      } else {
+        console.log('💰 Pagos obtenidos:', paymentsData);
+        setPayments(paymentsData);
+      }
 
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -321,7 +328,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Agregar pago a Supabase
+      // Intentar agregar pago a Supabase primero
       const success = await supabaseUtils.addPayment({
         userId: paymentForm.userId,
         userName: users.find(u => u.id === paymentForm.userId)?.nombre || 'Usuario',
@@ -334,7 +341,7 @@ export default function AdminDashboard() {
       });
       
       if (success) {
-        alert('Pago registrado correctamente');
+        alert('Pago registrado correctamente en Supabase');
         setShowPaymentForm(false);
         setPaymentForm({
           userId: '',
@@ -344,7 +351,31 @@ export default function AdminDashboard() {
         });
         loadAdminData(); // Recargar datos
       } else {
-        alert('Error: No se pudo registrar el pago');
+        // Fallback: usar almacenamiento local
+        console.log('💡 Usando almacenamiento local para el pago');
+        const newPayment = {
+          id: Date.now().toString(),
+          userId: paymentForm.userId,
+          userName: users.find(u => u.id === paymentForm.userId)?.nombre || 'Usuario',
+          monto: parseFloat(paymentForm.monto),
+          metodo: paymentForm.metodo,
+          concepto: paymentForm.concepto,
+          estado: 'Completado',
+          fecha: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          registrado_por: user?.nombre || 'Admin'
+        };
+        
+        adminStorage.payments.add(newPayment);
+        alert('Pago registrado correctamente (almacenamiento local)');
+        setShowPaymentForm(false);
+        setPaymentForm({
+          userId: '',
+          monto: '',
+          metodo: 'efectivo',
+          concepto: ''
+        });
+        loadAdminData(); // Recargar datos
       }
     } catch (error) {
       console.error('Error registrando pago:', error);

@@ -43,16 +43,35 @@ export const supabaseUtils = {
     }
 
     try {
-      console.log('🔍 Listando tablas disponibles en Supabase...');
-      // Esta es una función de debugging que puede ayudar a identificar las tablas
-      const { data, error } = await supabase.rpc('get_schema_tables');
-      if (error) {
-        console.log('No se pudo obtener lista de tablas:', error.message);
+      console.log('🔍 Verificando tablas disponibles en Supabase...');
+      
+      // Intentar acceder a la tabla users
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .limit(1);
+      
+      if (usersError) {
+        console.error('❌ Error accediendo a tabla users:', usersError);
       } else {
-        console.log('Tablas disponibles:', data);
+        console.log('✅ Tabla users accesible');
       }
+
+      // Intentar acceder a la tabla payments
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .limit(1);
+      
+      if (paymentsError) {
+        console.error('❌ Error accediendo a tabla payments:', paymentsError);
+        console.log('💡 La tabla payments no existe o no es accesible');
+      } else {
+        console.log('✅ Tabla payments accesible');
+      }
+
     } catch (error) {
-      console.log('Error obteniendo tablas:', error);
+      console.error('Error de conexión:', error);
     }
   },
   // Obtener todos los usuarios de Supabase
@@ -205,6 +224,7 @@ export const supabaseUtils = {
 
       if (error) {
         console.error('Error obteniendo pagos de Supabase:', error);
+        console.log('💡 Usando datos locales como fallback');
         return [];
       }
 
@@ -226,6 +246,7 @@ export const supabaseUtils = {
       return mappedPayments;
     } catch (error) {
       console.error('Error de conexión con Supabase:', error);
+      console.log('💡 Usando datos locales como fallback');
       return [];
     }
   },
@@ -253,12 +274,14 @@ export const supabaseUtils = {
 
       if (error) {
         console.error('Error agregando pago en Supabase:', error);
+        console.log('💡 La tabla payments no existe, usando almacenamiento local');
         return false;
       }
 
       return true;
     } catch (error) {
       console.error('Error de conexión con Supabase:', error);
+      console.log('💡 Usando almacenamiento local como fallback');
       return false;
     }
   }
