@@ -33,24 +33,6 @@ let users: User[] = [
     rol: 'admin',
     activo: true,
     created_at: new Date().toISOString()
-  },
-  {
-    id: '2',
-    nombre: 'Juan Pérez',
-    email: 'juan@test.com',
-    telefono: '+54 11 2345-6789',
-    rol: 'deportista',
-    activo: true,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '3',
-    nombre: 'María González',
-    email: 'maria@test.com',
-    telefono: '+54 11 3456-7890',
-    rol: 'deportista',
-    activo: true,
-    created_at: new Date().toISOString()
   }
 ];
 
@@ -145,24 +127,6 @@ export const adminStorage = {
         email: 'admin@test.com',
         telefono: '+54 11 1234-5678',
         rol: 'admin',
-        activo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: '2',
-        nombre: 'Juan Pérez',
-        email: 'juan@test.com',
-        telefono: '+54 11 2345-6789',
-        rol: 'deportista',
-        activo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: '3',
-        nombre: 'María González',
-        email: 'maria@test.com',
-        telefono: '+54 11 3456-7890',
-        rol: 'deportista',
         activo: true,
         created_at: new Date().toISOString()
       }
