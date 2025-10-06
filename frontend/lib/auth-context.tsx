@@ -111,12 +111,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.success('¡Cuenta creada exitosamente!');
         return true;
       } else {
+        console.error('Error del backend:', data);
         toast.error(data.error || 'Error al crear la cuenta');
         return false;
       }
     } catch (error) {
       console.error('Error en registro:', error);
-      toast.error('Error de conexión');
+      toast.error('Error de conexión con el servidor');
       return false;
     }
   };
