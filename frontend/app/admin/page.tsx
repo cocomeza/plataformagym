@@ -41,6 +41,7 @@ interface Attendance {
 
 export default function AdminPage() {
   // Admin panel with full-stack functionality and local fallback
+  // Updated: 2025-01-06 21:15:00 - Force Netlify cache update
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
