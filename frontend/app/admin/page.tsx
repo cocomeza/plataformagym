@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { adminStorage } from '@/lib/admin-storage';
+import { attendanceStorage } from '@/lib/attendance-storage';
 import { 
   Dumbbell, 
   Users, 
@@ -95,55 +97,27 @@ export default function AdminPage() {
     try {
       const token = localStorage.getItem('token');
       
-      // Cargar estadísticas
-      const statsResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      // Cargar estadísticas básicas (simuladas por ahora)
+      setStats({
+        totalUsers: users.length,
+        totalAttendance: attendance.length,
+        totalPayments: payments.length,
+        pendingPayments: 0
       });
-      
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData);
-      }
 
-      // Cargar usuarios
-      const usersResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setUsers(usersData);
-      }
+      // Cargar usuarios desde el almacenamiento local
+      const usersData = adminStorage.users.getAll();
+      setUsers(usersData);
 
-      // Cargar asistencias
-      const attendanceResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/attendance', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (attendanceResponse.ok) {
-        const attendanceData = await attendanceResponse.json();
-        setAttendance(attendanceData || []);
-        console.log('📊 Asistencias cargadas:', attendanceData);
-      }
+      // Cargar asistencias desde el almacenamiento local
+      const attendanceData = attendanceStorage.getAllAttendances();
+      setAttendance(attendanceData || []);
+      console.log('📊 Asistencias cargadas:', attendanceData);
 
-      // Cargar pagos
-      const paymentsResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/payments', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (paymentsResponse.ok) {
-        const paymentsData = await paymentsResponse.json();
-        setPayments(paymentsData || []);
-        console.log('💰 Pagos cargados:', paymentsData);
-      }
+      // Cargar pagos desde el almacenamiento local
+      const paymentsData = adminStorage.payments.getAll();
+      setPayments(paymentsData || []);
+      console.log('💰 Pagos cargados:', paymentsData);
 
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -154,59 +128,58 @@ export default function AdminPage() {
 
   const generateAttendanceCode = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/generate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
+      // Generar código de 4 dígitos localmente
+      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      const expiresAt = Date.now() + (30 * 1000); // 30 segundos
       
-      if (data.success) {
-        setAttendanceCode(data.code);
-        setCodeExpiry(data.expiresAt);
-        
-        // Auto-hide code after expiry
-        setTimeout(() => {
-          setAttendanceCode(null);
-          setCodeExpiry(null);
-        }, data.expiresIn * 60 * 1000);
-      } else {
-        console.error('Error del backend:', data.error);
-        alert('Error al generar código: ' + (data.error || 'Error desconocido'));
-      }
+      setAttendanceCode(code);
+      setCodeExpiry(expiresAt);
+      
+      console.log('🔢 Código generado:', code);
+      
+      // Auto-hide code after expiry
+      setTimeout(() => {
+        setAttendanceCode(null);
+        setCodeExpiry(null);
+      }, 30000);
+      
     } catch (error) {
       console.error('Error generando código:', error);
-      alert('Error de conexión al generar código');
+      alert('Error al generar código');
     }
   };
 
   const markAttendance = async (userId: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/admin/attendance/manual', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        alert('Asistencia marcada correctamente');
-        loadData(); // Recargar datos
-      } else {
-        alert(data.error || 'Error al marcar asistencia');
+      // Marcar asistencia localmente
+      const user = adminStorage.users.getById(userId);
+      if (!user) {
+        alert('Usuario no encontrado');
+        return;
       }
+
+      if (attendanceStorage.hasUserAttendedToday(userId)) {
+        alert('El usuario ya asistió hoy');
+        return;
+      }
+
+      const attendanceRecord = {
+        id: Date.now().toString(),
+        userId: userId,
+        userName: user.nombre,
+        metodo: 'Manual',
+        fecha_hora: new Date().toISOString(),
+        codigo_usado: 'Manual'
+      };
+
+      attendanceStorage.addAttendance(attendanceRecord);
+      
+      alert('Asistencia marcada correctamente');
+      loadData(); // Recargar datos
+      
     } catch (error) {
       console.error('Error marcando asistencia:', error);
-      alert('Error de conexión');
+      alert('Error al marcar asistencia');
     }
   };
 
