@@ -403,7 +403,7 @@ export default function AdminDashboard() {
           nombre: userForm.nombre,
           email: userForm.email,
           telefono: userForm.telefono,
-          rol: userForm.rol,
+          rol: userForm.rol as 'admin' | 'deportista',
           activo: true,
           created_at: new Date().toISOString()
         };
