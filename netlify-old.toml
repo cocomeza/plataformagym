@@ -1,0 +1,58 @@
+[build]
+  # Directorio base del proyecto - cambiado para forzar actualización
+  base = "frontend"
+  
+  # Comando de build - forzar rebuild sin caché
+  command = "npm ci --no-cache && npm run build"
+  
+  # Directorio de publicación
+  publish = "out"
+
+[build.environment]
+  # Versión de Node.js
+  NODE_VERSION = "18"
+  
+  # Variables de entorno para el build
+  NODE_ENV = "production"
+  
+  # Variables para Next.js
+  NEXT_TELEMETRY_DISABLED = "1"
+  
+  # Variables para el build
+  CI = "true"
+  
+  # Variable JWT requerida
+  JWT_SECRET = "gym-platform-jwt-secret-key-2025"
+  
+  # Deshabilitar caché de Netlify
+  NETLIFY_CACHE_DISABLED = "true"
+  NETLIFY_BUILD_CACHE_DISABLED = "true"
+
+# Plugin de Next.js deshabilitado - no se requiere configuración
+
+# Redirecciones para SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers de seguridad
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Cache para assets estáticos
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Cache para imágenes
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"

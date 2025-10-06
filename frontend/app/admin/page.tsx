@@ -39,7 +39,7 @@ interface Attendance {
   codigo_usado?: string;
 }
 
-export default function AdminPage() {
+export default function AdminDashboard() {
   // Admin panel with full-stack functionality and local fallback
   // Updated: 2025-01-06 21:20:00 - Force Netlify cache update
   const { user, signOut } = useAuth();
