@@ -1,10 +1,10 @@
 # Netlify Build Configuration Override
 # This file forces Netlify to use updated configuration
-# Generated: 2025-01-06 21:25:00
+# Generated: 2025-01-06 21:30:00 - Force clean build
 
 [build]
   base = "frontend"
-  command = "npm ci --no-cache && npm run build"
+  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
   publish = "out"
 
 [build.environment]

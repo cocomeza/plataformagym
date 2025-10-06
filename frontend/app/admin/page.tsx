@@ -106,23 +106,24 @@ export default function AdminDashboard() {
       // Cargar usuarios con fallback inteligente
       console.log('📊 Cargando usuarios...');
       
-      // Intentar Supabase primero
-      try {
-        await supabaseUtils.listTables();
-        const usersData = await supabaseUtils.getAllUsers();
-        
-        if (usersData && usersData.length > 0) {
-          console.log('✅ Usuarios cargados desde Supabase:', usersData);
-          setUsers(usersData);
-        } else {
-          throw new Error('No hay usuarios en Supabase');
-        }
-      } catch (error) {
-        console.log('⚠️ Supabase no disponible, usando almacenamiento local');
-        const localUsers = adminStorage.users.getAll();
-        console.log('👥 Usuarios cargados desde almacenamiento local:', localUsers);
-        setUsers(localUsers || []);
-      }
+       // Intentar Supabase primero, luego fallback a local
+       let usersData: any[] = [];
+       try {
+         await supabaseUtils.listTables();
+         const supabaseUsers = await supabaseUtils.getAllUsers();
+         
+         if (supabaseUsers && supabaseUsers.length > 0) {
+           console.log('✅ Usuarios cargados desde Supabase:', supabaseUsers);
+           usersData = supabaseUsers;
+         } else {
+           throw new Error('No hay usuarios en Supabase');
+         }
+       } catch (error) {
+         console.log('⚠️ Supabase no disponible, usando almacenamiento local');
+         usersData = adminStorage.users.getAll();
+         console.log('👥 Usuarios cargados desde almacenamiento local:', usersData);
+       }
+       setUsers(usersData || []);
 
       // Cargar asistencias desde el almacenamiento local
       const attendanceData = attendanceStorage.getAllAttendances();
@@ -132,36 +133,36 @@ export default function AdminDashboard() {
       // Cargar pagos con fallback inteligente
       console.log('💰 Cargando pagos...');
       
-      try {
-        const paymentsData = await supabaseUtils.getAllPayments();
-        
-        if (paymentsData && paymentsData.length > 0) {
-          console.log('✅ Pagos cargados desde Supabase:', paymentsData);
-          setPayments(paymentsData);
-        } else {
-          throw new Error('No hay pagos en Supabase');
-        }
-      } catch (error) {
-        console.log('⚠️ Supabase no disponible para pagos, usando almacenamiento local');
-        const localPayments = adminStorage.payments.getAll();
-        
-        // Mapear Payment[] a SupabasePayment[]
-        const mappedPayments: SupabasePayment[] = (localPayments || []).map(payment => ({
-          id: payment.id,
-          userId: payment.userId,
-          userName: users.find(u => u.id === payment.userId)?.nombre || 'Usuario',
-          monto: payment.monto,
-          metodo: payment.metodo,
-          concepto: payment.concepto,
-          estado: payment.estado,
-          fecha: payment.fecha,
-          created_at: payment.created_at,
-          registrado_por: payment.registrado_por
-        }));
-        
-        console.log('💰 Pagos cargados desde almacenamiento local:', mappedPayments);
-        setPayments(mappedPayments);
-      }
+       try {
+         const supabasePayments = await supabaseUtils.getAllPayments();
+         
+         if (supabasePayments && supabasePayments.length > 0) {
+           console.log('✅ Pagos cargados desde Supabase:', supabasePayments);
+           setPayments(supabasePayments);
+         } else {
+           throw new Error('No hay pagos en Supabase');
+         }
+       } catch (error) {
+         console.log('⚠️ Supabase no disponible para pagos, usando almacenamiento local');
+         const localPayments = adminStorage.payments.getAll();
+         
+         // Mapear Payment[] a SupabasePayment[]
+         const mappedPayments: SupabasePayment[] = (localPayments || []).map(payment => ({
+           id: payment.id,
+           userId: payment.userId,
+           userName: usersData.find(u => u.id === payment.userId)?.nombre || 'Usuario',
+           monto: payment.monto,
+           metodo: payment.metodo,
+           concepto: payment.concepto,
+           estado: payment.estado,
+           fecha: payment.fecha,
+           created_at: payment.created_at,
+           registrado_por: payment.registrado_por
+         }));
+         
+         console.log('💰 Pagos cargados desde almacenamiento local:', mappedPayments);
+         setPayments(mappedPayments);
+       }
 
       // Cargar notificaciones desde almacenamiento local
       const notificationsData = notificationsStorage.getAll();
