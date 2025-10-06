@@ -5,7 +5,7 @@
 [build]
   base = "frontend"
   command = "npm ci --no-cache && npm run build"
-  publish = ".next"
+  publish = "out"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -15,6 +15,7 @@
   JWT_SECRET = "gym-platform-jwt-secret-key-2025"
   NETLIFY_CACHE_DISABLED = "true"
   NETLIFY_BUILD_CACHE_DISABLED = "true"
+  NETLIFY = "true"
 
 # Redirecciones para SPA
 [[redirects]]
