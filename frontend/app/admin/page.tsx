@@ -72,7 +72,7 @@ export default function AdminDashboard() {
     nombre: '',
     email: '',
     telefono: '',
-    rol: 'deportista'
+    rol: 'deportista' as 'admin' | 'deportista'
   });
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
@@ -948,7 +948,7 @@ export default function AdminDashboard() {
                   </label>
                   <select
                     value={userForm.rol}
-                    onChange={(e) => setUserForm({...userForm, rol: e.target.value})}
+                    onChange={(e) => setUserForm({...userForm, rol: e.target.value as 'admin' | 'deportista'})}
                     className="input"
                   >
                     <option value="deportista">Deportista</option>
