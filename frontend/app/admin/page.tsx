@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { adminStorage } from '@/lib/admin-storage';
+import { adminStorage, User as AdminUser } from '@/lib/admin-storage';
 import { attendanceStorage } from '@/lib/attendance-storage';
 import { 
   Dumbbell, 
@@ -30,18 +30,6 @@ interface DashboardStats {
   pendingPayments: number;
 }
 
-interface User {
-  id: string;
-  nombre: string;
-  email: string;
-  rol: string;
-  activo: boolean;
-  total_asistencias: number;
-  total_pagos: number;
-  ultimo_pago: string;
-  estado_pago: string;
-}
-
 interface Attendance {
   id: string;
   userId: string;
@@ -60,7 +48,7 @@ export default function AdminPage() {
     totalPayments: 0,
     pendingPayments: 0
   });
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,24 +116,51 @@ export default function AdminPage() {
 
   const generateAttendanceCode = async () => {
     try {
-      // Generar código de 4 dígitos localmente
-      const code = Math.floor(1000 + Math.random() * 9000).toString();
-      const expiresAt = Date.now() + (30 * 1000); // 30 segundos
+      const token = localStorage.getItem('token');
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/generate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
       
+      if (data.success) {
+        setAttendanceCode(data.code);
+        setCodeExpiry(data.expiresAt);
+        
+        // Auto-hide code after expiry
+        setTimeout(() => {
+          setAttendanceCode(null);
+          setCodeExpiry(null);
+        }, data.expiresIn * 60 * 1000);
+      } else {
+        console.error('Error del backend:', data.error);
+        // Fallback: generar código localmente si el backend falla
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        const expiresAt = Date.now() + (30 * 1000);
+        setAttendanceCode(code);
+        setCodeExpiry(expiresAt);
+        setTimeout(() => {
+          setAttendanceCode(null);
+          setCodeExpiry(null);
+        }, 30000);
+        console.log('🔢 Código generado localmente:', code);
+      }
+    } catch (error) {
+      console.error('Error generando código:', error);
+      // Fallback: generar código localmente si hay error de conexión
+      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      const expiresAt = Date.now() + (30 * 1000);
       setAttendanceCode(code);
       setCodeExpiry(expiresAt);
-      
-      console.log('🔢 Código generado:', code);
-      
-      // Auto-hide code after expiry
       setTimeout(() => {
         setAttendanceCode(null);
         setCodeExpiry(null);
       }, 30000);
-      
-    } catch (error) {
-      console.error('Error generando código:', error);
-      alert('Error al generar código');
+      console.log('🔢 Código generado localmente (fallback):', code);
     }
   };
 
