@@ -2,8 +2,8 @@
   # Directorio base del proyecto
   base = "frontend"
   
-  # Comando de build
-  command = "npm ci && npm run build"
+  # Comando de build - forzar rebuild sin caché
+  command = "npm ci --no-cache && npm run build"
   
   # Directorio de publicación
   publish = "out"
@@ -23,6 +23,10 @@
   
   # Variable JWT requerida
   JWT_SECRET = "gym-platform-jwt-secret-key-2025"
+  
+  # Deshabilitar caché de Netlify
+  NETLIFY_CACHE_DISABLED = "true"
+  NETLIFY_BUILD_CACHE_DISABLED = "true"
 
 # Plugin de Next.js deshabilitado - no se requiere configuración
 
