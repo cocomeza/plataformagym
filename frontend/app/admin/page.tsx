@@ -40,6 +40,7 @@ interface Attendance {
 }
 
 export default function AdminPage() {
+  // Admin panel with full-stack functionality and local fallback
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats>({
@@ -78,10 +79,10 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    loadData();
+    loadAdminData();
   }, [user, router]);
 
-  const loadData = async () => {
+  const loadAdminData = async () => {
     try {
       const token = localStorage.getItem('token');
       
@@ -191,7 +192,7 @@ export default function AdminPage() {
       attendanceStorage.addAttendance(attendanceRecord);
       
       alert('Asistencia marcada correctamente');
-      loadData(); // Recargar datos
+      loadAdminData(); // Recargar datos
       
     } catch (error) {
       console.error('Error marcando asistencia:', error);
@@ -226,7 +227,7 @@ export default function AdminPage() {
       
       if (data.success) {
         alert(`Usuario ${action}do correctamente`);
-        loadData(); // Recargar datos
+        loadAdminData(); // Recargar datos
       } else {
         alert(data.error || `Error al ${action} usuario`);
       }
@@ -301,7 +302,7 @@ export default function AdminPage() {
           rol: 'deportista'
         });
         setShowUserForm(false);
-        loadData(); // Recargar datos
+        loadAdminData(); // Recargar datos
       } else {
         alert(data.error || 'Error al crear usuario');
       }
@@ -339,7 +340,7 @@ export default function AdminPage() {
           concepto: ''
         });
         setShowPaymentForm(false);
-        loadData(); // Recargar datos
+        loadAdminData(); // Recargar datos
       } else {
         alert(data.error || 'Error al registrar pago');
       }
