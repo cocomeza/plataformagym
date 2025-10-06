@@ -22,6 +22,26 @@ export interface SupabaseUser {
 }
 
 export const supabaseUtils = {
+  // Función de debugging para listar tablas disponibles
+  async listTables(): Promise<void> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return;
+    }
+
+    try {
+      console.log('🔍 Listando tablas disponibles en Supabase...');
+      // Esta es una función de debugging que puede ayudar a identificar las tablas
+      const { data, error } = await supabase.rpc('get_schema_tables');
+      if (error) {
+        console.log('No se pudo obtener lista de tablas:', error.message);
+      } else {
+        console.log('Tablas disponibles:', data);
+      }
+    } catch (error) {
+      console.log('Error obteniendo tablas:', error);
+    }
+  },
   // Obtener todos los usuarios de Supabase
   async getAllUsers(): Promise<SupabaseUser[]> {
     if (!supabase) {
@@ -30,17 +50,46 @@ export const supabaseUtils = {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Intentar diferentes nombres de tabla
+      const possibleTables = ['users', 'usuarios', 'profiles', 'auth.users'];
+      let data: any[] = [];
+      let error: any = null;
 
-      if (error) {
+      for (const tableName of possibleTables) {
+        console.log(`🔍 Intentando tabla: ${tableName}`);
+        const result = await supabase
+          .from(tableName)
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!result.error) {
+          console.log(`✅ Tabla encontrada: ${tableName}`);
+          data = result.data || [];
+          break;
+        } else {
+          console.log(`❌ Tabla ${tableName} no encontrada:`, result.error.message);
+          error = result.error;
+        }
+      }
+
+      if (error && data.length === 0) {
         console.error('Error obteniendo usuarios de Supabase:', error);
         return [];
       }
 
-      return data || [];
+      // Mapear los datos al formato esperado
+      const mappedUsers = data.map((user: any) => ({
+        id: user.id || user.user_id,
+        nombre: user.nombre || user.name || user.full_name || user.email?.split('@')[0] || 'Usuario',
+        email: user.email,
+        telefono: user.telefono || user.phone || user.telefono || '',
+        rol: user.rol || 'deportista',
+        activo: user.activo !== undefined ? user.activo : true,
+        created_at: user.created_at || new Date().toISOString()
+      }));
+
+      console.log('👥 Usuarios mapeados:', mappedUsers);
+      return mappedUsers;
     } catch (error) {
       console.error('Error de conexión con Supabase:', error);
       return [];
@@ -56,7 +105,7 @@ export const supabaseUtils = {
 
     try {
       const { data, error } = await supabase
-        .from('usuarios')
+        .from('users')
         .select('*')
         .eq('id', id)
         .single();
@@ -82,7 +131,7 @@ export const supabaseUtils = {
 
     try {
       const { error } = await supabase
-        .from('usuarios')
+        .from('users')
         .update({ activo })
         .eq('id', id);
 
@@ -107,7 +156,7 @@ export const supabaseUtils = {
 
     try {
       const { error } = await supabase
-        .from('usuarios')
+        .from('users')
         .insert([{
           ...user,
           created_at: new Date().toISOString()

@@ -103,6 +103,10 @@ export default function AdminDashboard() {
 
       // Cargar usuarios desde Supabase
       console.log('📊 Cargando usuarios desde Supabase...');
+      
+      // Debug: listar tablas disponibles
+      await supabaseUtils.listTables();
+      
       const usersData = await supabaseUtils.getAllUsers();
       console.log('👥 Usuarios obtenidos:', usersData);
       setUsers(usersData);
