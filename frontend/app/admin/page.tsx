@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { adminStorage, User as AdminUser } from '@/lib/admin-storage';
 import { attendanceStorage, AttendanceRecord } from '@/lib/attendance-storage';
 import { supabaseUtils, SupabaseUser, SupabasePayment } from '@/lib/supabase-utils';
+import { notificationsStorage, Notification } from '@/lib/notifications-storage';
 import { 
   Dumbbell, 
   Users, 
@@ -54,6 +55,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<SupabaseUser[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [payments, setPayments] = useState<SupabasePayment[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [attendanceCode, setAttendanceCode] = useState<string | null>(null);
   const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
@@ -101,33 +103,55 @@ export default function AdminDashboard() {
         pendingPayments: 0
       });
 
-      // Cargar usuarios desde Supabase
-      console.log('📊 Cargando usuarios desde Supabase...');
+      // Cargar usuarios con fallback inteligente
+      console.log('📊 Cargando usuarios...');
       
-      // Debug: listar tablas disponibles
-      await supabaseUtils.listTables();
-      
-      const usersData = await supabaseUtils.getAllUsers();
-      console.log('👥 Usuarios obtenidos:', usersData);
-      setUsers(usersData);
+      // Intentar Supabase primero
+      try {
+        await supabaseUtils.listTables();
+        const usersData = await supabaseUtils.getAllUsers();
+        
+        if (usersData && usersData.length > 0) {
+          console.log('✅ Usuarios cargados desde Supabase:', usersData);
+          setUsers(usersData);
+        } else {
+          throw new Error('No hay usuarios en Supabase');
+        }
+      } catch (error) {
+        console.log('⚠️ Supabase no disponible, usando almacenamiento local');
+        const localUsers = adminStorage.users.getAll();
+        console.log('👥 Usuarios cargados desde almacenamiento local:', localUsers);
+        setUsers(localUsers || []);
+      }
 
       // Cargar asistencias desde el almacenamiento local
       const attendanceData = attendanceStorage.getAllAttendances();
       setAttendance(attendanceData || []);
       console.log('📊 Asistencias cargadas:', attendanceData);
 
-      // Cargar pagos desde Supabase con fallback a local
-      console.log('💰 Cargando pagos desde Supabase...');
-      const paymentsData = await supabaseUtils.getAllPayments();
+      // Cargar pagos con fallback inteligente
+      console.log('💰 Cargando pagos...');
       
-      if (paymentsData.length === 0) {
-        console.log('💡 Usando datos locales para pagos');
+      try {
+        const paymentsData = await supabaseUtils.getAllPayments();
+        
+        if (paymentsData && paymentsData.length > 0) {
+          console.log('✅ Pagos cargados desde Supabase:', paymentsData);
+          setPayments(paymentsData);
+        } else {
+          throw new Error('No hay pagos en Supabase');
+        }
+      } catch (error) {
+        console.log('⚠️ Supabase no disponible para pagos, usando almacenamiento local');
         const localPayments = adminStorage.payments.getAll();
+        console.log('💰 Pagos cargados desde almacenamiento local:', localPayments);
         setPayments(localPayments || []);
-      } else {
-        console.log('💰 Pagos obtenidos:', paymentsData);
-        setPayments(paymentsData);
       }
+
+      // Cargar notificaciones desde almacenamiento local
+      const notificationsData = notificationsStorage.getAll();
+      setNotifications(notificationsData);
+      console.log('📢 Notificaciones cargadas:', notificationsData);
 
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -234,18 +258,26 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Actualizar estado en Supabase
+      // Intentar actualizar estado en Supabase primero
       const success = await supabaseUtils.updateUserStatus(userId, !isActive);
       
       if (success) {
-        alert(`Usuario ${action}do correctamente`);
+        alert(`Usuario ${action}do correctamente en Supabase`);
         loadAdminData(); // Recargar datos
       } else {
-        alert('Error al actualizar el usuario');
+        // Fallback: usar almacenamiento local
+        console.log('💡 Usando almacenamiento local para actualizar usuario');
+        adminStorage.users.updateStatus(userId, !isActive);
+        alert(`Usuario ${action}do correctamente (almacenamiento local)`);
+        loadAdminData(); // Recargar datos
       }
     } catch (error) {
       console.error('Error actualizando usuario:', error);
-      alert('Error de conexión');
+      // Fallback: usar almacenamiento local
+      console.log('💡 Usando almacenamiento local para actualizar usuario');
+      adminStorage.users.updateStatus(userId, !isActive);
+      alert(`Usuario ${action}do correctamente (almacenamiento local)`);
+      loadAdminData(); // Recargar datos
     }
   };
 
@@ -278,11 +310,47 @@ export default function AdminDashboard() {
           priority: 'medium'
         });
       } else {
-        alert('Error: ' + (data.error || 'Error desconocido'));
+        // Fallback: usar almacenamiento local
+        console.log('💡 Usando almacenamiento local para crear notificación');
+        const newNotification = notificationsStorage.add({
+          titulo: notificationForm.title,
+          mensaje: notificationForm.message,
+          tipo: 'info',
+          fecha: new Date().toISOString(),
+          leida: false
+        });
+        
+        console.log('✅ Notificación creada localmente:', newNotification);
+        alert('Notificación creada correctamente (almacenamiento local)');
+        setShowNotificationForm(false);
+        setNotificationForm({
+          type: 'gym_announcement',
+          title: '',
+          message: '',
+          priority: 'medium'
+        });
       }
     } catch (error) {
       console.error('Error creando notificación:', error);
-      alert('Error de conexión');
+      // Fallback: usar almacenamiento local
+      console.log('💡 Usando almacenamiento local para crear notificación');
+      const newNotification = notificationsStorage.add({
+        titulo: notificationForm.title,
+        mensaje: notificationForm.message,
+        tipo: 'info',
+        fecha: new Date().toISOString(),
+        leida: false
+      });
+      
+      console.log('✅ Notificación creada localmente:', newNotification);
+      alert('Notificación creada correctamente (almacenamiento local)');
+      setShowNotificationForm(false);
+      setNotificationForm({
+        type: 'gym_announcement',
+        title: '',
+        message: '',
+        priority: 'medium'
+      });
     }
   };
 
@@ -303,7 +371,7 @@ export default function AdminDashboard() {
       });
       
       if (success) {
-        alert('Usuario creado correctamente');
+        alert('Usuario creado correctamente en Supabase');
         setShowUserForm(false);
         setUserForm({
           nombre: '',
@@ -313,7 +381,28 @@ export default function AdminDashboard() {
         });
         loadAdminData(); // Recargar datos
       } else {
-        alert('Error: No se pudo crear el usuario');
+        // Fallback: usar almacenamiento local
+        console.log('💡 Usando almacenamiento local para crear usuario');
+        const newUser = {
+          id: Date.now().toString(),
+          nombre: userForm.nombre,
+          email: userForm.email,
+          telefono: userForm.telefono,
+          rol: userForm.rol,
+          activo: true,
+          created_at: new Date().toISOString()
+        };
+        
+        adminStorage.users.add(newUser);
+        alert('Usuario creado correctamente (almacenamiento local)');
+        setShowUserForm(false);
+        setUserForm({
+          nombre: '',
+          email: '',
+          telefono: '',
+          rol: 'deportista'
+        });
+        loadAdminData(); // Recargar datos
       }
     } catch (error) {
       console.error('Error creando usuario:', error);
