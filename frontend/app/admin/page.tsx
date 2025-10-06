@@ -96,7 +96,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('token');
       
       // Cargar estadísticas
-      const statsResponse = await fetch('/api/admin/stats', {
+      const statsResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -108,7 +108,7 @@ export default function AdminPage() {
       }
 
       // Cargar usuarios
-      const usersResponse = await fetch('/api/admin/users', {
+      const usersResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -120,7 +120,7 @@ export default function AdminPage() {
       }
 
       // Cargar asistencias
-      const attendanceResponse = await fetch('/api/admin/attendance', {
+      const attendanceResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/attendance', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -133,7 +133,7 @@ export default function AdminPage() {
       }
 
       // Cargar pagos
-      const paymentsResponse = await fetch('/api/admin/payments', {
+      const paymentsResponse = await fetch('https://gym-platform-backend.onrender.com/api/admin/payments', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -155,10 +155,11 @@ export default function AdminPage() {
   const generateAttendanceCode = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/attendance/code/generate', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
@@ -173,16 +174,20 @@ export default function AdminPage() {
           setAttendanceCode(null);
           setCodeExpiry(null);
         }, data.expiresIn * 60 * 1000);
+      } else {
+        console.error('Error del backend:', data.error);
+        alert('Error al generar código: ' + (data.error || 'Error desconocido'));
       }
     } catch (error) {
       console.error('Error generando código:', error);
+      alert('Error de conexión al generar código');
     }
   };
 
   const markAttendance = async (userId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/attendance/manual', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/admin/attendance/manual', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +224,7 @@ export default function AdminPage() {
       const token = localStorage.getItem('token');
       const method = isActive ? 'POST' : 'PUT';
       
-      const response = await fetch('/api/admin/users/deactivate', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/admin/users/deactivate', {
         method: method,
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -250,7 +255,7 @@ export default function AdminPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/notifications', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/notifications', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -287,7 +292,7 @@ export default function AdminPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/users/add', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/admin/users/add', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -325,7 +330,7 @@ export default function AdminPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/payments/add', {
+      const response = await fetch('https://gym-platform-backend.onrender.com/api/admin/payments/add', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
