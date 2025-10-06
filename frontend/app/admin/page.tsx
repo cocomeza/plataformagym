@@ -184,7 +184,8 @@ export default function AdminPage() {
         userName: user.nombre,
         metodo: 'Manual',
         fecha_hora: new Date().toISOString(),
-        codigo_usado: 'Manual'
+        codigo_usado: 'Manual',
+        created_at: new Date().toISOString()
       };
 
       attendanceStorage.addAttendance(attendanceRecord);
