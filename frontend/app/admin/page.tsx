@@ -144,8 +144,23 @@ export default function AdminDashboard() {
       } catch (error) {
         console.log('⚠️ Supabase no disponible para pagos, usando almacenamiento local');
         const localPayments = adminStorage.payments.getAll();
-        console.log('💰 Pagos cargados desde almacenamiento local:', localPayments);
-        setPayments(localPayments || []);
+        
+        // Mapear Payment[] a SupabasePayment[]
+        const mappedPayments: SupabasePayment[] = (localPayments || []).map(payment => ({
+          id: payment.id,
+          userId: payment.userId,
+          userName: users.find(u => u.id === payment.userId)?.nombre || 'Usuario',
+          monto: payment.monto,
+          metodo: payment.metodo,
+          concepto: payment.concepto,
+          estado: payment.estado,
+          fecha: payment.fecha,
+          created_at: payment.created_at,
+          registrado_por: payment.registrado_por
+        }));
+        
+        console.log('💰 Pagos cargados desde almacenamiento local:', mappedPayments);
+        setPayments(mappedPayments);
       }
 
       // Cargar notificaciones desde almacenamiento local
@@ -445,7 +460,6 @@ export default function AdminDashboard() {
         const newPayment = {
           id: Date.now().toString(),
           userId: paymentForm.userId,
-          userName: users.find(u => u.id === paymentForm.userId)?.nombre || 'Usuario',
           monto: parseFloat(paymentForm.monto),
           metodo: paymentForm.metodo,
           concepto: paymentForm.concepto,
