@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { adminStorage, User as AdminUser } from '@/lib/admin-storage';
 import { attendanceStorage, AttendanceRecord } from '@/lib/attendance-storage';
-import { supabaseUtils, SupabaseUser } from '@/lib/supabase-utils';
+import { supabaseUtils, SupabaseUser, SupabasePayment } from '@/lib/supabase-utils';
 import { 
   Dumbbell, 
   Users, 
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
   });
   const [users, setUsers] = useState<SupabaseUser[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
+  const [payments, setPayments] = useState<SupabasePayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [attendanceCode, setAttendanceCode] = useState<string | null>(null);
   const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
@@ -116,10 +116,11 @@ export default function AdminDashboard() {
       setAttendance(attendanceData || []);
       console.log('📊 Asistencias cargadas:', attendanceData);
 
-      // Cargar pagos desde el almacenamiento local
-      const paymentsData = adminStorage.payments.getAll();
-      setPayments(paymentsData || []);
-      console.log('💰 Pagos cargados:', paymentsData);
+      // Cargar pagos desde Supabase
+      console.log('💰 Cargando pagos desde Supabase...');
+      const paymentsData = await supabaseUtils.getAllPayments();
+      console.log('💰 Pagos obtenidos:', paymentsData);
+      setPayments(paymentsData);
 
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -320,19 +321,19 @@ export default function AdminDashboard() {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/admin/payments/add', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentForm),
+      // Agregar pago a Supabase
+      const success = await supabaseUtils.addPayment({
+        userId: paymentForm.userId,
+        userName: users.find(u => u.id === paymentForm.userId)?.nombre || 'Usuario',
+        monto: parseFloat(paymentForm.monto),
+        metodo: paymentForm.metodo,
+        concepto: paymentForm.concepto,
+        estado: 'Completado',
+        fecha: new Date().toISOString(),
+        registrado_por: user?.nombre || 'Admin'
       });
-
-      const data = await response.json();
       
-      if (data.success) {
+      if (success) {
         alert('Pago registrado correctamente');
         setShowPaymentForm(false);
         setPaymentForm({
@@ -343,7 +344,7 @@ export default function AdminDashboard() {
         });
         loadAdminData(); // Recargar datos
       } else {
-        alert('Error: ' + (data.error || 'Error desconocido'));
+        alert('Error: No se pudo registrar el pago');
       }
     } catch (error) {
       console.error('Error registrando pago:', error);

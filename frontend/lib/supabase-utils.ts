@@ -21,6 +21,19 @@ export interface SupabaseUser {
   created_at: string;
 }
 
+export interface SupabasePayment {
+  id: string;
+  userId: string;
+  userName: string;
+  monto: number;
+  metodo: string;
+  concepto: string;
+  estado: string;
+  fecha: string;
+  created_at: string;
+  registrado_por: string;
+}
+
 export const supabaseUtils = {
   // Función de debugging para listar tablas disponibles
   async listTables(): Promise<void> {
@@ -164,6 +177,82 @@ export const supabaseUtils = {
 
       if (error) {
         console.error('Error agregando usuario en Supabase:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return false;
+    }
+  },
+
+  // Obtener todos los pagos de Supabase
+  async getAllPayments(): Promise<SupabasePayment[]> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado, usando datos locales');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          users:userId (nombre)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error obteniendo pagos de Supabase:', error);
+        return [];
+      }
+
+      // Mapear los datos al formato esperado
+      const mappedPayments = (data || []).map((payment: any) => ({
+        id: payment.id,
+        userId: payment.userId,
+        userName: payment.users?.nombre || 'Usuario',
+        monto: payment.monto,
+        metodo: payment.metodo,
+        concepto: payment.concepto,
+        estado: payment.estado || 'Completado',
+        fecha: payment.fecha || payment.created_at,
+        created_at: payment.created_at,
+        registrado_por: payment.registrado_por || 'Admin'
+      }));
+
+      console.log('💰 Pagos obtenidos:', mappedPayments);
+      return mappedPayments;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return [];
+    }
+  },
+
+  // Agregar nuevo pago
+  async addPayment(payment: Omit<SupabasePayment, 'id' | 'created_at'>): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .insert([{
+          userId: payment.userId,
+          monto: payment.monto,
+          metodo: payment.metodo,
+          concepto: payment.concepto,
+          estado: payment.estado || 'Completado',
+          fecha: payment.fecha || new Date().toISOString(),
+          registrado_por: payment.registrado_por || 'Admin',
+          created_at: new Date().toISOString()
+        }]);
+
+      if (error) {
+        console.error('Error agregando pago en Supabase:', error);
         return false;
       }
 
