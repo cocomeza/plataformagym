@@ -83,6 +83,11 @@ export default function AdminDashboard() {
     loadAdminData();
   }, [user, router]);
 
+  // Debug: monitorear cambios en attendanceCode
+  useEffect(() => {
+    console.log('📊 Estado del código:', { attendanceCode, codeExpiry });
+  }, [attendanceCode, codeExpiry]);
+
   const loadAdminData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -117,6 +122,7 @@ export default function AdminDashboard() {
   };
 
   const generateAttendanceCode = async () => {
+    console.log('🔄 Iniciando generación de código...');
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/generate', {
@@ -130,6 +136,7 @@ export default function AdminDashboard() {
       const data = await response.json();
       
       if (data.success) {
+        console.log('✅ Código generado desde backend:', data.code);
         setAttendanceCode(data.code);
         setCodeExpiry(data.expiresAt);
         
@@ -474,13 +481,19 @@ export default function AdminDashboard() {
                     Generar Código
                   </button>
                   {attendanceCode && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-600">Código:</span>
-                      <span className="text-2xl font-bold text-primary-600">{attendanceCode}</span>
-                      {codeExpiry && (
-                        <span className="text-xs text-orange-600 font-medium">
-                          ⚠️ El código expira en {Math.ceil((codeExpiry - Date.now()) / 1000)} segundos
+                    <div className="flex items-center space-x-4 bg-green-50 p-4 rounded-lg border border-green-200">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">Código:</span>
+                        <span className="text-3xl font-bold text-green-600 bg-white px-4 py-2 rounded border-2 border-green-300">
+                          {attendanceCode}
                         </span>
+                      </div>
+                      {codeExpiry && (
+                        <div className="flex items-center space-x-1">
+                          <span className="text-sm text-orange-600 font-medium">
+                            ⚠️ Expira en {Math.ceil((codeExpiry - Date.now()) / 1000)} segundos
+                          </span>
+                        </div>
                       )}
                     </div>
                   )}
