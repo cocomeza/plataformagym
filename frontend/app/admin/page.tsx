@@ -595,12 +595,12 @@ export default function AdminPage() {
                             {user.rol}
                           </span>
                         </td>
-                        <td className="table-cell">{user.total_asistencias}</td>
                         <td className="table-cell">
-                          <span className={`badge ${
-                            user.estado_pago === 'Al día' ? 'badge-success' : 'badge-danger'
-                          }`}>
-                            {user.estado_pago}
+                          {attendanceStorage.getUserAttendances(user.id).length}
+                        </td>
+                        <td className="table-cell">
+                          <span className="badge badge-info">
+                            {adminStorage.payments.getByUser(user.id).length} pagos
                           </span>
                         </td>
                         <td className="table-cell">
