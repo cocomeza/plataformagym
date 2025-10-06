@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { adminStorage, User as AdminUser } from '@/lib/admin-storage';
 import { attendanceStorage, AttendanceRecord } from '@/lib/attendance-storage';
+import { supabaseUtils, SupabaseUser } from '@/lib/supabase-utils';
 import { 
   Dumbbell, 
   Users, 
@@ -50,7 +51,7 @@ export default function AdminDashboard() {
     totalPayments: 0,
     pendingPayments: 0
   });
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<SupabaseUser[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,8 +101,10 @@ export default function AdminDashboard() {
         pendingPayments: 0
       });
 
-      // Cargar usuarios desde el almacenamiento local
-      const usersData = adminStorage.users.getAll();
+      // Cargar usuarios desde Supabase
+      console.log('📊 Cargando usuarios desde Supabase...');
+      const usersData = await supabaseUtils.getAllUsers();
+      console.log('👥 Usuarios obtenidos:', usersData);
       setUsers(usersData);
 
       // Cargar asistencias desde el almacenamiento local
@@ -219,8 +222,8 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Actualizar estado localmente
-      const success = adminStorage.users.updateStatus(userId, !isActive);
+      // Actualizar estado en Supabase
+      const success = await supabaseUtils.updateUserStatus(userId, !isActive);
       
       if (success) {
         alert(`Usuario ${action}do correctamente`);
@@ -278,19 +281,16 @@ export default function AdminDashboard() {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/admin/users/add', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userForm),
+      // Agregar usuario a Supabase
+      const success = await supabaseUtils.addUser({
+        nombre: userForm.nombre,
+        email: userForm.email,
+        telefono: userForm.telefono,
+        rol: userForm.rol as 'admin' | 'deportista',
+        activo: true
       });
-
-      const data = await response.json();
       
-      if (data.success) {
+      if (success) {
         alert('Usuario creado correctamente');
         setShowUserForm(false);
         setUserForm({
@@ -301,7 +301,7 @@ export default function AdminDashboard() {
         });
         loadAdminData(); // Recargar datos
       } else {
-        alert('Error: ' + (data.error || 'Error desconocido'));
+        alert('Error: No se pudo crear el usuario');
       }
     } catch (error) {
       console.error('Error creando usuario:', error);
