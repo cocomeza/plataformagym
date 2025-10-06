@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { adminStorage, User as AdminUser } from '@/lib/admin-storage';
-import { attendanceStorage } from '@/lib/attendance-storage';
+import { attendanceStorage, AttendanceRecord } from '@/lib/attendance-storage';
 import { 
   Dumbbell, 
   Users, 
@@ -185,7 +185,7 @@ export default function AdminPage() {
         metodo: 'Manual',
         fecha_hora: new Date().toISOString(),
         codigo_usado: 'Manual',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString() // Required by AttendanceRecord interface
       };
 
       attendanceStorage.addAttendance(attendanceRecord);
