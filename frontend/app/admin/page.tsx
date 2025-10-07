@@ -399,7 +399,7 @@ export default function AdminDashboard() {
       } else {
         // Fallback: usar almacenamiento local
         console.log('💡 Usando almacenamiento local para crear usuario');
-        const newUser = {
+        const newUser: AdminUser = {
           id: Date.now().toString(),
           nombre: userForm.nombre,
           email: userForm.email,
