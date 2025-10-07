@@ -68,11 +68,16 @@ export default function AdminDashboard() {
     priority: 'medium'
   });
   const [showUserForm, setShowUserForm] = useState(false);
-  const [userForm, setUserForm] = useState({
+  const [userForm, setUserForm] = useState<{
+    nombre: string;
+    email: string;
+    telefono: string;
+    rol: 'admin' | 'deportista';
+  }>({
     nombre: '',
     email: '',
     telefono: '',
-    rol: 'deportista' as 'admin' | 'deportista'
+    rol: 'deportista'
   });
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
@@ -404,7 +409,7 @@ export default function AdminDashboard() {
           nombre: userForm.nombre,
           email: userForm.email,
           telefono: userForm.telefono,
-          rol: userForm.rol as 'admin' | 'deportista',
+          rol: userForm.rol,
           activo: true,
           created_at: new Date().toISOString()
         };
