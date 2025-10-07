@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { supabase } from './supabase';
+import { supabaseUtils, SupabaseUser } from './supabase-utils';
 
 interface User {
   id: string;
@@ -30,109 +32,210 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Verificar token al cargar la app
+  // Verificar sesión de Supabase al cargar la app
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          // Verificar si el token es válido
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          if (payload.exp * 1000 > Date.now()) {
-            // Token válido, obtener datos del usuario
-            const userData = localStorage.getItem('user');
-            if (userData) {
-              setUser(JSON.parse(userData));
-            }
+      try {
+        // Obtener sesión actual de Supabase
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error obteniendo sesión:', error);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          // Usuario autenticado, obtener datos completos del usuario
+          const supabaseUser = await supabaseUtils.getUserById(session.user.id);
+          
+          if (supabaseUser) {
+            setUser({
+              id: supabaseUser.id,
+              nombre: supabaseUser.nombre,
+              email: supabaseUser.email,
+              rol: supabaseUser.rol
+            });
+            console.log('✅ Usuario autenticado desde Supabase:', supabaseUser);
           } else {
-            // Token expirado, limpiar datos
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            // El usuario existe en Auth pero no en la tabla users
+            console.warn('⚠️ Usuario autenticado pero sin registro completo');
             setUser(null);
           }
-        } catch (error) {
-          // Token inválido, limpiar datos
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+        } else {
           setUser(null);
         }
+      } catch (error) {
+        console.error('Error inicializando auth:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     initializeAuth();
+
+    // Escuchar cambios en la sesión de Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔄 Cambio en estado de autenticación:', event);
+      
+      if (session?.user) {
+        const supabaseUser = await supabaseUtils.getUserById(session.user.id);
+        if (supabaseUser) {
+          setUser({
+            id: supabaseUser.id,
+            nombre: supabaseUser.nombre,
+            email: supabaseUser.email,
+            rol: supabaseUser.rol
+          });
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Autenticar con Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        toast.success('¡Bienvenido!');
-        return true;
-      } else {
-        toast.error(data.error || 'Error al iniciar sesión');
+      if (authError) {
+        console.error('Error en login:', authError);
+        toast.error('Credenciales incorrectas');
         return false;
       }
+
+      if (authData.user) {
+        // Obtener datos completos del usuario desde la tabla users
+        const supabaseUser = await supabaseUtils.getUserById(authData.user.id);
+        
+        if (supabaseUser) {
+          setUser({
+            id: supabaseUser.id,
+            nombre: supabaseUser.nombre,
+            email: supabaseUser.email,
+            rol: supabaseUser.rol
+          });
+          toast.success(`¡Bienvenido, ${supabaseUser.nombre}!`);
+          console.log('✅ Login exitoso con Supabase:', supabaseUser);
+          return true;
+        } else {
+          toast.error('Usuario no encontrado en la base de datos');
+          await supabase.auth.signOut();
+          return false;
+        }
+      }
+
+      return false;
     } catch (error) {
       console.error('Error en login:', error);
-      toast.error('Error de conexión');
+      toast.error('Error de conexión con Supabase');
       return false;
     }
   };
 
   const register = async (nombre: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ nombre, email, password }),
+      // Crear usuario en Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            nombre: nombre,
+          }
+        }
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        toast.success('¡Cuenta creada exitosamente!');
-        return true;
-      } else {
-        console.error('Error del backend:', data);
-        toast.error(data.error || 'Error al crear la cuenta');
+      if (authError) {
+        console.error('Error en registro:', authError);
+        toast.error(authError.message || 'Error al crear la cuenta');
         return false;
       }
+
+      if (authData.user) {
+        // Crear registro en la tabla users
+        const success = await supabaseUtils.addUser({
+          nombre,
+          email,
+          telefono: '',
+          rol: 'deportista', // Por defecto los nuevos usuarios son deportistas
+          activo: true
+        });
+
+        if (success) {
+          // Obtener datos completos del usuario
+          const supabaseUser = await supabaseUtils.getUserById(authData.user.id);
+          
+          if (supabaseUser) {
+            setUser({
+              id: supabaseUser.id,
+              nombre: supabaseUser.nombre,
+              email: supabaseUser.email,
+              rol: supabaseUser.rol
+            });
+            toast.success('¡Cuenta creada exitosamente!');
+            console.log('✅ Registro exitoso con Supabase:', supabaseUser);
+            return true;
+          }
+        } else {
+          // Si falla la creación en la tabla users, eliminar el usuario de Auth
+          await supabase.auth.signOut();
+          toast.error('Error al completar el registro');
+          return false;
+        }
+      }
+
+      return false;
     } catch (error) {
       console.error('Error en registro:', error);
-      toast.error('Error de conexión con el servidor');
+      toast.error('Error de conexión con Supabase');
       return false;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    toast.success('Sesión cerrada');
-    router.push('/');
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Error al cerrar sesión:', error);
+        toast.error('Error al cerrar sesión');
+      } else {
+        setUser(null);
+        toast.success('Sesión cerrada');
+        router.push('/');
+        console.log('✅ Sesión cerrada exitosamente');
+      }
+    } catch (error) {
+      console.error('Error en logout:', error);
+      toast.error('Error al cerrar sesión');
+    }
   };
 
   const refreshToken = async (): Promise<boolean> => {
-    // Por ahora, simplemente retornar false ya que no implementamos refresh token
-    return false;
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('Error refrescando sesión:', error);
+        return false;
+      }
+      
+      return !!data.session;
+    } catch (error) {
+      console.error('Error en refreshToken:', error);
+      return false;
+    }
   };
 
   const value = {

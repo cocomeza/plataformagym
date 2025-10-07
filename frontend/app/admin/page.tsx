@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { adminStorage, User as AdminUser } from '@/lib/admin-storage';
-import { attendanceStorage, AttendanceRecord } from '@/lib/attendance-storage';
-import { supabaseUtils, SupabaseUser, SupabasePayment } from '@/lib/supabase-utils';
-import { notificationsStorage, Notification } from '@/lib/notifications-storage';
+import { supabaseUtils, SupabaseUser, SupabasePayment, SupabaseAttendance, SupabaseNotification } from '@/lib/supabase-utils';
 import { 
   Dumbbell, 
   Users, 
@@ -32,14 +29,7 @@ interface DashboardStats {
   pendingPayments: number;
 }
 
-interface Attendance {
-  id: string;
-  userId: string;
-  userName: string;
-  metodo: string;
-  fecha_hora: string;
-  codigo_usado?: string;
-}
+// Tipos se importan desde supabase-utils
 
 export default function AdminDashboard() {
   // Admin panel with full-stack functionality and local fallback
@@ -53,9 +43,9 @@ export default function AdminDashboard() {
     pendingPayments: 0
   });
   const [users, setUsers] = useState<SupabaseUser[]>([]);
-  const [attendance, setAttendance] = useState<Attendance[]>([]);
+  const [attendance, setAttendance] = useState<SupabaseAttendance[]>([]);
   const [payments, setPayments] = useState<SupabasePayment[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<SupabaseNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [attendanceCode, setAttendanceCode] = useState<string | null>(null);
   const [codeExpiry, setCodeExpiry] = useState<number | null>(null);
@@ -98,172 +88,101 @@ export default function AdminDashboard() {
 
   const loadAdminData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      console.log('📊 Cargando datos desde Supabase...');
       
-      // Cargar estadísticas básicas (simuladas por ahora)
+      // Cargar usuarios desde Supabase
+      const usersData = await supabaseUtils.getAllUsers();
+      setUsers(usersData || []);
+      console.log('✅ Usuarios cargados desde Supabase:', usersData);
+
+      // Cargar asistencias desde Supabase
+      const attendanceData = await supabaseUtils.getAllAttendances();
+      setAttendance(attendanceData || []);
+      console.log('✅ Asistencias cargadas desde Supabase:', attendanceData);
+
+      // Cargar pagos desde Supabase
+      const paymentsData = await supabaseUtils.getAllPayments();
+      setPayments(paymentsData || []);
+      console.log('✅ Pagos cargados desde Supabase:', paymentsData);
+
+      // Cargar notificaciones desde Supabase
+      const notificationsData = await supabaseUtils.getAllNotifications();
+      setNotifications(notificationsData || []);
+      console.log('✅ Notificaciones cargadas desde Supabase:', notificationsData);
+
+      // Actualizar estadísticas
       setStats({
-        totalUsers: users.length,
-        totalAttendance: attendance.length,
-        totalPayments: payments.length,
-        pendingPayments: 0
+        totalUsers: usersData.length,
+        totalAttendance: attendanceData.length,
+        totalPayments: paymentsData.length,
+        pendingPayments: paymentsData.filter(p => p.estado === 'Pendiente').length
       });
 
-      // Cargar usuarios con fallback inteligente
-      console.log('📊 Cargando usuarios...');
-      
-       // Intentar Supabase primero, luego fallback a local
-       let usersData: any[] = [];
-       try {
-         await supabaseUtils.listTables();
-         const supabaseUsers = await supabaseUtils.getAllUsers();
-         
-         if (supabaseUsers && supabaseUsers.length > 0) {
-           console.log('✅ Usuarios cargados desde Supabase:', supabaseUsers);
-           usersData = supabaseUsers;
-         } else {
-           throw new Error('No hay usuarios en Supabase');
-         }
-       } catch (error) {
-         console.log('⚠️ Supabase no disponible, usando almacenamiento local');
-         usersData = adminStorage.users.getAll();
-         console.log('👥 Usuarios cargados desde almacenamiento local:', usersData);
-       }
-       setUsers(usersData || []);
-
-      // Cargar asistencias desde el almacenamiento local
-      const attendanceData = attendanceStorage.getAllAttendances();
-      setAttendance(attendanceData || []);
-      console.log('📊 Asistencias cargadas:', attendanceData);
-
-      // Cargar pagos con fallback inteligente
-      console.log('💰 Cargando pagos...');
-      
-       try {
-         const supabasePayments = await supabaseUtils.getAllPayments();
-         
-         if (supabasePayments && supabasePayments.length > 0) {
-           console.log('✅ Pagos cargados desde Supabase:', supabasePayments);
-           setPayments(supabasePayments);
-         } else {
-           throw new Error('No hay pagos en Supabase');
-         }
-       } catch (error) {
-         console.log('⚠️ Supabase no disponible para pagos, usando almacenamiento local');
-         const localPayments = adminStorage.payments.getAll();
-         
-         // Mapear Payment[] a SupabasePayment[]
-         const mappedPayments: SupabasePayment[] = (localPayments || []).map(payment => ({
-           id: payment.id,
-           userId: payment.userId,
-           userName: usersData.find(u => u.id === payment.userId)?.nombre || 'Usuario',
-           monto: payment.monto,
-           metodo: payment.metodo,
-           concepto: payment.concepto,
-           estado: payment.estado,
-           fecha: payment.fecha,
-           created_at: payment.created_at,
-           registrado_por: payment.registrado_por
-         }));
-         
-         console.log('💰 Pagos cargados desde almacenamiento local:', mappedPayments);
-         setPayments(mappedPayments);
-       }
-
-      // Cargar notificaciones desde almacenamiento local
-      const notificationsData = notificationsStorage.getAll();
-      setNotifications(notificationsData);
-      console.log('📢 Notificaciones cargadas:', notificationsData);
-
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('❌ Error cargando datos desde Supabase:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const generateAttendanceCode = async () => {
-    console.log('🔄 Iniciando generación de código...');
+    console.log('🔄 Generando código de asistencia...');
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/attendance/code/generate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log('✅ Código generado desde backend:', data.code);
-        setAttendanceCode(data.code);
-        setCodeExpiry(data.expiresAt);
-        
-        // Auto-hide code after expiry
-        setTimeout(() => {
-          setAttendanceCode(null);
-          setCodeExpiry(null);
-        }, data.expiresIn * 60 * 1000);
-      } else {
-        console.error('Error del backend:', data.error);
-        // Fallback: generar código localmente si el backend falla
-        const code = Math.floor(1000 + Math.random() * 9000).toString();
-        const expiresAt = Date.now() + (30 * 1000);
-        setAttendanceCode(code);
-        setCodeExpiry(expiresAt);
-        setTimeout(() => {
-          setAttendanceCode(null);
-          setCodeExpiry(null);
-        }, 30000);
-        console.log('🔢 Código de 4 dígitos generado localmente:', code);
-      }
-    } catch (error) {
-      console.error('Error generando código:', error);
-      // Fallback: generar código localmente si hay error de conexión
+      // Generar código de 4 dígitos
       const code = Math.floor(1000 + Math.random() * 9000).toString();
-      const expiresAt = Date.now() + (30 * 1000);
+      const expiresAt = Date.now() + (5 * 60 * 1000); // Expira en 5 minutos
+      
       setAttendanceCode(code);
       setCodeExpiry(expiresAt);
+      
+      // Auto-hide code after expiry
       setTimeout(() => {
         setAttendanceCode(null);
         setCodeExpiry(null);
-      }, 30000);
-      console.log('🔢 Código de 4 dígitos generado localmente (fallback):', code);
+        console.log('⏰ Código expirado');
+      }, 5 * 60 * 1000);
+      
+      console.log('✅ Código de asistencia generado:', code);
+    } catch (error) {
+      console.error('❌ Error generando código:', error);
+      alert('Error al generar código de asistencia');
     }
   };
 
   const markAttendance = async (userId: string) => {
     try {
-      // Marcar asistencia localmente
-      const user = adminStorage.users.getById(userId);
+      // Verificar que el usuario existe
+      const user = users.find(u => u.id === userId);
       if (!user) {
         alert('Usuario no encontrado');
         return;
       }
 
-      if (attendanceStorage.hasUserAttendedToday(userId)) {
+      // Verificar si ya asistió hoy
+      const hasAttended = await supabaseUtils.hasUserAttendedToday(userId);
+      if (hasAttended) {
         alert('El usuario ya asistió hoy');
         return;
       }
 
-      const attendanceRecord = {
-        id: Date.now().toString(),
+      // Registrar asistencia en Supabase
+      const success = await supabaseUtils.addAttendance({
         userId: userId,
         userName: user.nombre,
         metodo: 'Manual',
         fecha_hora: new Date().toISOString(),
-        codigo_usado: 'Manual',
-        created_at: new Date().toISOString() // Required by AttendanceRecord interface
-      };
+        codigo_usado: 'Manual'
+      });
 
-      attendanceStorage.addAttendance(attendanceRecord);
-      
-      alert('Asistencia marcada correctamente');
-      loadAdminData(); // Recargar datos
+      if (success) {
+        alert('✅ Asistencia marcada correctamente');
+        loadAdminData(); // Recargar datos
+      } else {
+        alert('❌ Error al marcar asistencia');
+      }
       
     } catch (error) {
-      console.error('Error marcando asistencia:', error);
+      console.error('❌ Error marcando asistencia:', error);
       alert('Error al marcar asistencia');
     }
   };
@@ -279,26 +198,18 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Intentar actualizar estado en Supabase primero
+      // Actualizar estado en Supabase
       const success = await supabaseUtils.updateUserStatus(userId, !isActive);
       
       if (success) {
-        alert(`Usuario ${action}do correctamente en Supabase`);
+        alert(`✅ Usuario ${action}do correctamente`);
         loadAdminData(); // Recargar datos
       } else {
-        // Fallback: usar almacenamiento local
-        console.log('💡 Usando almacenamiento local para actualizar usuario');
-        adminStorage.users.updateStatus(userId, !isActive);
-        alert(`Usuario ${action}do correctamente (almacenamiento local)`);
-        loadAdminData(); // Recargar datos
+        alert(`❌ Error al ${action} usuario`);
       }
     } catch (error) {
-      console.error('Error actualizando usuario:', error);
-      // Fallback: usar almacenamiento local
-      console.log('💡 Usando almacenamiento local para actualizar usuario');
-      adminStorage.users.updateStatus(userId, !isActive);
-      alert(`Usuario ${action}do correctamente (almacenamiento local)`);
-      loadAdminData(); // Recargar datos
+      console.error('❌ Error actualizando usuario:', error);
+      alert(`Error al ${action} usuario`);
     }
   };
 
@@ -309,53 +220,8 @@ export default function AdminDashboard() {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/notifications', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(notificationForm),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        alert('Notificación creada correctamente');
-        setShowNotificationForm(false);
-        setNotificationForm({
-          type: 'gym_announcement',
-          title: '',
-          message: '',
-          priority: 'medium'
-        });
-      } else {
-        // Fallback: usar almacenamiento local
-        console.log('💡 Usando almacenamiento local para crear notificación');
-        const newNotification = notificationsStorage.add({
-          titulo: notificationForm.title,
-          mensaje: notificationForm.message,
-          tipo: 'info',
-          fecha: new Date().toISOString(),
-          leida: false
-        });
-        
-        console.log('✅ Notificación creada localmente:', newNotification);
-        alert('Notificación creada correctamente (almacenamiento local)');
-        setShowNotificationForm(false);
-        setNotificationForm({
-          type: 'gym_announcement',
-          title: '',
-          message: '',
-          priority: 'medium'
-        });
-      }
-    } catch (error) {
-      console.error('Error creando notificación:', error);
-      // Fallback: usar almacenamiento local
-      console.log('💡 Usando almacenamiento local para crear notificación');
-      const newNotification = notificationsStorage.add({
+      // Crear notificación en Supabase
+      const success = await supabaseUtils.addNotification({
         titulo: notificationForm.title,
         mensaje: notificationForm.message,
         tipo: 'info',
@@ -363,15 +229,22 @@ export default function AdminDashboard() {
         leida: false
       });
       
-      console.log('✅ Notificación creada localmente:', newNotification);
-      alert('Notificación creada correctamente (almacenamiento local)');
-      setShowNotificationForm(false);
-      setNotificationForm({
-        type: 'gym_announcement',
-        title: '',
-        message: '',
-        priority: 'medium'
-      });
+      if (success) {
+        alert('✅ Notificación creada correctamente');
+        setShowNotificationForm(false);
+        setNotificationForm({
+          type: 'gym_announcement',
+          title: '',
+          message: '',
+          priority: 'medium'
+        });
+        loadAdminData(); // Recargar datos
+      } else {
+        alert('❌ Error al crear notificación');
+      }
+    } catch (error) {
+      console.error('❌ Error creando notificación:', error);
+      alert('Error al crear notificación');
     }
   };
 
@@ -426,7 +299,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Intentar agregar pago a Supabase primero
+      // Agregar pago a Supabase
       const success = await supabaseUtils.addPayment({
         userId: paymentForm.userId,
         userName: users.find(u => u.id === paymentForm.userId)?.nombre || 'Usuario',
@@ -439,7 +312,7 @@ export default function AdminDashboard() {
       });
       
       if (success) {
-        alert('Pago registrado correctamente en Supabase');
+        alert('✅ Pago registrado correctamente');
         setShowPaymentForm(false);
         setPaymentForm({
           userId: '',
@@ -449,34 +322,11 @@ export default function AdminDashboard() {
         });
         loadAdminData(); // Recargar datos
       } else {
-        // Fallback: usar almacenamiento local
-        console.log('💡 Usando almacenamiento local para el pago');
-        const newPayment = {
-          id: Date.now().toString(),
-          userId: paymentForm.userId,
-          monto: parseFloat(paymentForm.monto),
-          metodo: paymentForm.metodo,
-          concepto: paymentForm.concepto,
-          estado: 'Completado',
-          fecha: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          registrado_por: user?.nombre || 'Admin'
-        };
-        
-        adminStorage.payments.add(newPayment);
-        alert('Pago registrado correctamente (almacenamiento local)');
-        setShowPaymentForm(false);
-        setPaymentForm({
-          userId: '',
-          monto: '',
-          metodo: 'efectivo',
-          concepto: ''
-        });
-        loadAdminData(); // Recargar datos
+        alert('❌ Error al registrar el pago');
       }
     } catch (error) {
-      console.error('Error registrando pago:', error);
-      alert('Error de conexión');
+      console.error('❌ Error registrando pago:', error);
+      alert('Error al registrar pago');
     }
   };
 
@@ -676,11 +526,11 @@ export default function AdminDashboard() {
                             </span>
                           </td>
                           <td className="table-cell">
-                            {attendanceStorage.getUserAttendances(user.id).length}
+                            {attendance.filter(a => a.userId === user.id).length}
                           </td>
                           <td className="table-cell">
                             <span className="badge badge-info">
-                              {adminStorage.payments.getByUser(user.id).length} pagos
+                              {payments.filter(p => p.userId === user.id).length} pagos
                             </span>
                           </td>
                           <td className="table-cell">

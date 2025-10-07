@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { supabaseUtils, SupabaseAttendance, SupabasePayment, SupabaseNotification } from '@/lib/supabase-utils';
 import { 
   Dumbbell, 
   QrCode, 
@@ -16,27 +17,14 @@ import {
   Bell
 } from 'lucide-react';
 
-interface AttendanceData {
-  id: string;
-  fecha_hora: string;
-  metodo: string;
-}
-
-interface PaymentData {
-  id: string;
-  fecha: string;
-  monto: number;
-  metodo: string;
-  estado: string;
-}
-
 export default function DashboardPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
-  const [attendance, setAttendance] = useState<AttendanceData[]>([]);
-  const [payments, setPayments] = useState<PaymentData[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [attendance, setAttendance] = useState<SupabaseAttendance[]>([]);
+  const [payments, setPayments] = useState<SupabasePayment[]>([]);
+  const [notifications, setNotifications] = useState<SupabaseNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [attendanceCode, setAttendanceCode] = useState('');
 
   useEffect(() => {
 
@@ -44,50 +32,29 @@ export default function DashboardPage() {
   }, [user, router]);
 
   const loadData = async () => {
+    if (!user) return;
+    
     try {
-      const token = localStorage.getItem('token');
+      console.log('📊 Cargando datos del usuario desde Supabase...');
       
-      // Cargar asistencias
-      const attendanceResponse = await fetch('/api/attendance/my', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (attendanceResponse.ok) {
-        const attendanceData = await attendanceResponse.json();
-        setAttendance(attendanceData || []);
-        console.log('📊 Asistencias cargadas:', attendanceData);
-      }
+      // Cargar asistencias del usuario
+      const attendanceData = await supabaseUtils.getUserAttendances(user.id);
+      setAttendance(attendanceData || []);
+      console.log('✅ Asistencias cargadas:', attendanceData);
 
-      // Cargar pagos
-      const paymentsResponse = await fetch('/api/payments/my', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (paymentsResponse.ok) {
-        const paymentsData = await paymentsResponse.json();
-        setPayments(paymentsData);
-      }
+      // Cargar pagos (filtrar por usuario en el cliente por ahora)
+      const allPayments = await supabaseUtils.getAllPayments();
+      const userPayments = allPayments.filter(p => p.userId === user.id);
+      setPayments(userPayments || []);
+      console.log('✅ Pagos cargados:', userPayments);
 
-      // Cargar notificaciones
-      const notificationsResponse = await fetch('/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (notificationsResponse.ok) {
-        const notificationsData = await notificationsResponse.json();
-        if (notificationsData.success) {
-          setNotifications(notificationsData.notifications);
-        }
-      }
+      // Cargar notificaciones del usuario
+      const notificationsData = await supabaseUtils.getUserNotifications(user.id);
+      setNotifications(notificationsData || []);
+      console.log('✅ Notificaciones cargadas:', notificationsData);
 
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('❌ Error cargando datos:', error);
     } finally {
       setLoading(false);
     }
@@ -95,30 +62,36 @@ export default function DashboardPage() {
 
 
   const markAttendance = async () => {
+    if (!user) return;
+    
     const code = prompt('Ingresa el código de asistencia de 4 dígitos:');
     
     if (code && code.length === 4 && /^\d{4}$/.test(code)) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/attendance/code/validate', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ code }),
-        });
+        // Verificar si ya asistió hoy
+        const hasAttended = await supabaseUtils.hasUserAttendedToday(user.id);
+        if (hasAttended) {
+          alert('Ya marcaste asistencia hoy');
+          return;
+        }
 
-        const data = await response.json();
+        // Registrar asistencia en Supabase
+        const success = await supabaseUtils.addAttendance({
+          userId: user.id,
+          userName: user.nombre,
+          metodo: 'Código',
+          fecha_hora: new Date().toISOString(),
+          codigo_usado: code
+        });
         
-        if (data.success) {
-          alert('¡Asistencia marcada correctamente!');
+        if (success) {
+          alert('✅ ¡Asistencia marcada correctamente!');
           loadData(); // Recargar datos
         } else {
-          alert(data.error || 'Código inválido o expirado');
+          alert('❌ Error al marcar asistencia');
         }
       } catch (error) {
-        console.error('Error validando código:', error);
+        console.error('❌ Error validando código:', error);
         alert('Error de conexión');
       }
     } else if (code) {
@@ -128,30 +101,22 @@ export default function DashboardPage() {
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/notifications/mark-read', {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ notificationId }),
-      });
-
-      if (response.ok) {
+      const success = await supabaseUtils.markNotificationAsRead(notificationId);
+      
+      if (success) {
         // Actualizar el estado local
         setNotifications(prev => 
           prev.map(notif => 
-            notif.id === notificationId ? { ...notif, isRead: true } : notif
+            notif.id === notificationId ? { ...notif, leida: true } : notif
           )
         );
       }
     } catch (error) {
-      console.error('Error marcando notificación como leída:', error);
+      console.error('❌ Error marcando notificación como leída:', error);
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.leida).length;
 
   if (loading) {
     return (
@@ -327,25 +292,26 @@ export default function DashboardPage() {
                   <div 
                     key={notification.id} 
                     className={`p-4 rounded-lg border-l-4 ${
-                      notification.priority === 'high' ? 'border-red-500 bg-red-50' :
-                      notification.priority === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                      notification.tipo === 'error' ? 'border-red-500 bg-red-50' :
+                      notification.tipo === 'warning' ? 'border-yellow-500 bg-yellow-50' :
+                      notification.tipo === 'success' ? 'border-green-500 bg-green-50' :
                       'border-blue-500 bg-blue-50'
-                    } ${!notification.isRead ? 'font-medium' : 'opacity-75'}`}
-                    onClick={() => !notification.isRead && markNotificationAsRead(notification.id)}
+                    } ${!notification.leida ? 'font-medium' : 'opacity-75'}`}
+                    onClick={() => !notification.leida && markNotificationAsRead(notification.id)}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="text-sm font-medium text-gray-900">
-                          {notification.title}
+                          {notification.titulo}
                         </h4>
                         <p className="text-sm text-gray-600 mt-1">
-                          {notification.message}
+                          {notification.mensaje}
                         </p>
                         <p className="text-xs text-gray-500 mt-2">
-                          {new Date(notification.createdAt).toLocaleString('es-AR')}
+                          {new Date(notification.fecha).toLocaleString('es-AR')}
                         </p>
                       </div>
-                      {!notification.isRead && (
+                      {!notification.leida && (
                         <div className="w-2 h-2 bg-red-500 rounded-full ml-2"></div>
                       )}
                     </div>

@@ -34,6 +34,27 @@ export interface SupabasePayment {
   registrado_por: string;
 }
 
+export interface SupabaseAttendance {
+  id: string;
+  userId: string;
+  userName: string;
+  fecha_hora: string;
+  metodo: string;
+  codigo_usado?: string;
+  created_at: string;
+}
+
+export interface SupabaseNotification {
+  id: string;
+  titulo: string;
+  mensaje: string;
+  tipo: 'info' | 'warning' | 'success' | 'error';
+  fecha: string;
+  leida: boolean;
+  userId?: string;
+  created_at: string;
+}
+
 export const supabaseUtils = {
   // Función de debugging para listar tablas disponibles
   async listTables(): Promise<void> {
@@ -282,6 +303,356 @@ export const supabaseUtils = {
     } catch (error) {
       console.error('Error de conexión con Supabase:', error);
       console.log('💡 Usando almacenamiento local como fallback');
+      return false;
+    }
+  },
+
+  // ==================== ASISTENCIAS ====================
+
+  // Obtener todas las asistencias
+  async getAllAttendances(): Promise<SupabaseAttendance[]> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('attendances')
+        .select(`
+          *,
+          users:userId (nombre)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error obteniendo asistencias de Supabase:', error);
+        return [];
+      }
+
+      const mappedAttendances = (data || []).map((attendance: any) => ({
+        id: attendance.id,
+        userId: attendance.userId,
+        userName: attendance.users?.nombre || 'Usuario',
+        fecha_hora: attendance.fecha_hora,
+        metodo: attendance.metodo,
+        codigo_usado: attendance.codigo_usado,
+        created_at: attendance.created_at
+      }));
+
+      console.log('📊 Asistencias obtenidas:', mappedAttendances);
+      return mappedAttendances;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return [];
+    }
+  },
+
+  // Obtener asistencias por usuario
+  async getUserAttendances(userId: string): Promise<SupabaseAttendance[]> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('attendances')
+        .select('*')
+        .eq('userId', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error obteniendo asistencias de usuario:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return [];
+    }
+  },
+
+  // Verificar si el usuario ya marcó asistencia hoy
+  async hasUserAttendedToday(userId: string): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString();
+
+      const { data, error } = await supabase
+        .from('attendances')
+        .select('id')
+        .eq('userId', userId)
+        .gte('fecha_hora', todayISO);
+
+      if (error) {
+        console.error('Error verificando asistencia:', error);
+        return false;
+      }
+
+      return (data || []).length > 0;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return false;
+    }
+  },
+
+  // Agregar nueva asistencia
+  async addAttendance(attendance: Omit<SupabaseAttendance, 'id' | 'created_at'>): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('attendances')
+        .insert([{
+          userId: attendance.userId,
+          userName: attendance.userName,
+          fecha_hora: attendance.fecha_hora || new Date().toISOString(),
+          metodo: attendance.metodo,
+          codigo_usado: attendance.codigo_usado,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (error) {
+        console.error('Error agregando asistencia en Supabase:', error);
+        return false;
+      }
+
+      console.log('✅ Asistencia registrada en Supabase');
+      return true;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return false;
+    }
+  },
+
+  // Obtener asistencias de hoy
+  async getTodayAttendances(): Promise<SupabaseAttendance[]> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return [];
+    }
+
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString();
+
+      const { data, error } = await supabase
+        .from('attendances')
+        .select(`
+          *,
+          users:userId (nombre)
+        `)
+        .gte('fecha_hora', todayISO)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error obteniendo asistencias de hoy:', error);
+        return [];
+      }
+
+      const mappedAttendances = (data || []).map((attendance: any) => ({
+        id: attendance.id,
+        userId: attendance.userId,
+        userName: attendance.users?.nombre || 'Usuario',
+        fecha_hora: attendance.fecha_hora,
+        metodo: attendance.metodo,
+        codigo_usado: attendance.codigo_usado,
+        created_at: attendance.created_at
+      }));
+
+      return mappedAttendances;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return [];
+    }
+  },
+
+  // ==================== NOTIFICACIONES ====================
+
+  // Obtener todas las notificaciones
+  async getAllNotifications(): Promise<SupabaseNotification[]> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error obteniendo notificaciones de Supabase:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return [];
+    }
+  },
+
+  // Obtener notificaciones de un usuario
+  async getUserNotifications(userId?: string): Promise<SupabaseNotification[]> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return [];
+    }
+
+    try {
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (userId) {
+        // Notificaciones generales + específicas del usuario
+        query = query.or(`userId.is.null,userId.eq.${userId}`);
+      } else {
+        // Solo notificaciones generales
+        query = query.is('userId', null);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error obteniendo notificaciones de usuario:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return [];
+    }
+  },
+
+  // Agregar nueva notificación
+  async addNotification(notification: Omit<SupabaseNotification, 'id' | 'created_at'>): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert([{
+          titulo: notification.titulo,
+          mensaje: notification.mensaje,
+          tipo: notification.tipo,
+          fecha: notification.fecha || new Date().toISOString(),
+          leida: notification.leida || false,
+          userId: notification.userId,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (error) {
+        console.error('Error agregando notificación en Supabase:', error);
+        return false;
+      }
+
+      console.log('✅ Notificación creada en Supabase');
+      return true;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return false;
+    }
+  },
+
+  // Marcar notificación como leída
+  async markNotificationAsRead(notificationId: string): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ leida: true })
+        .eq('id', notificationId);
+
+      if (error) {
+        console.error('Error marcando notificación como leída:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return false;
+    }
+  },
+
+  // Obtener conteo de notificaciones no leídas
+  async getUnreadNotificationsCount(userId?: string): Promise<number> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return 0;
+    }
+
+    try {
+      let query = supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('leida', false);
+
+      if (userId) {
+        query = query.or(`userId.is.null,userId.eq.${userId}`);
+      } else {
+        query = query.is('userId', null);
+      }
+
+      const { count, error } = await query;
+
+      if (error) {
+        console.error('Error obteniendo conteo de notificaciones:', error);
+        return 0;
+      }
+
+      return count || 0;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return 0;
+    }
+  },
+
+  // Eliminar notificación
+  async deleteNotification(notificationId: string): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) {
+        console.error('Error eliminando notificación:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
       return false;
     }
   }
