@@ -382,7 +382,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Agregar usuario a Supabase
+      // Solo intentar agregar usuario a Supabase
       const success = await supabaseUtils.addUser({
         nombre: userForm.nombre,
         email: userForm.email,
@@ -402,28 +402,7 @@ export default function AdminDashboard() {
         });
         loadAdminData(); // Recargar datos
       } else {
-        // Fallback: usar almacenamiento local
-        console.log('💡 Usando almacenamiento local para crear usuario');
-        const newUser: AdminUser = {
-          id: Date.now().toString(),
-          nombre: userForm.nombre,
-          email: userForm.email,
-          telefono: userForm.telefono,
-          rol: userForm.rol === 'admin' ? 'admin' : 'deportista',
-          activo: true,
-          created_at: new Date().toISOString()
-        };
-        
-        adminStorage.users.add(newUser);
-        alert('Usuario creado correctamente (almacenamiento local)');
-        setShowUserForm(false);
-        setUserForm({
-          nombre: '',
-          email: '',
-          telefono: '',
-          rol: 'deportista'
-        });
-        loadAdminData(); // Recargar datos
+        alert('Error: No se pudo crear el usuario');
       }
     } catch (error) {
       console.error('Error creando usuario:', error);
