@@ -216,7 +216,7 @@ export default function AdminDashboard() {
           setAttendanceCode(null);
           setCodeExpiry(null);
         }, 30000);
-        console.log('🔢 Código generado localmente:', code);
+        console.log('🔢 Código de 4 dígitos generado localmente:', code);
       }
     } catch (error) {
       console.error('Error generando código:', error);
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
         setAttendanceCode(null);
         setCodeExpiry(null);
       }, 30000);
-      console.log('🔢 Código generado localmente (fallback):', code);
+      console.log('🔢 Código de 4 dígitos generado localmente (fallback):', code);
     }
   };
 
@@ -382,16 +382,24 @@ export default function AdminDashboard() {
     }
 
     try {
+      console.log('🔄 Creando usuario en Supabase...', {
+        nombre: userForm.nombre,
+        email: userForm.email,
+        telefono: userForm.telefono,
+        rol: userForm.rol
+      });
+
       // Solo intentar agregar usuario a Supabase
       const success = await supabaseUtils.addUser({
         nombre: userForm.nombre,
         email: userForm.email,
         telefono: userForm.telefono,
-        rol: userForm.rol as 'admin' | 'deportista',
+        rol: userForm.rol,
         activo: true
       });
       
       if (success) {
+        console.log('✅ Usuario creado correctamente en Supabase');
         alert('Usuario creado correctamente en Supabase');
         setShowUserForm(false);
         setUserForm({
@@ -400,13 +408,14 @@ export default function AdminDashboard() {
           telefono: '',
           rol: 'deportista'
         });
-        loadAdminData(); // Recargar datos
+        loadAdminData(); // Recargar datos para mostrar el nuevo usuario
       } else {
-        alert('Error: No se pudo crear el usuario');
+        console.error('❌ Error creando usuario en Supabase');
+        alert('Error: No se pudo crear el usuario. Verifica la conexión con Supabase.');
       }
     } catch (error) {
-      console.error('Error creando usuario:', error);
-      alert('Error de conexión');
+      console.error('❌ Error creando usuario:', error);
+      alert('Error de conexión con Supabase');
     }
   };
 
