@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { supabaseUtils } from './supabase-utils';
 
 interface User {
   id: string;
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      // 1. Autenticar con backend de Render
       const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
@@ -76,9 +78,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
+        // 2. Guardar token y usuario en localStorage
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
+        
+        // 3. Sincronizar usuario con Supabase (si no existe)
+        try {
+          await supabaseUtils.syncUserWithSupabase(data.user);
+          console.log('✅ Usuario sincronizado con Supabase');
+        } catch (syncError) {
+          console.warn('⚠️ Error sincronizando con Supabase:', syncError);
+          // No fallar el login por esto
+        }
+        
         toast.success('¡Bienvenido!');
         return true;
       } else {
@@ -94,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (nombre: string, email: string, password: string): Promise<boolean> => {
     try {
+      // 1. Registrar con backend de Render
       const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
@@ -105,9 +119,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (data.success) {
+        // 2. Guardar token y usuario en localStorage
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         setUser(data.user);
+        
+        // 3. Sincronizar usuario con Supabase
+        try {
+          await supabaseUtils.syncUserWithSupabase(data.user);
+          console.log('✅ Usuario registrado y sincronizado con Supabase');
+        } catch (syncError) {
+          console.warn('⚠️ Error sincronizando con Supabase:', syncError);
+          // No fallar el registro por esto
+        }
+        
         toast.success('¡Cuenta creada exitosamente!');
         return true;
       } else {

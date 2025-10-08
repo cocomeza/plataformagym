@@ -120,6 +120,8 @@ export default function AdminDashboard() {
 
     } catch (error) {
       console.error('❌ Error cargando datos desde Supabase:', error);
+      // Fallback: mostrar mensaje de error pero no romper la app
+      toast.error('Error cargando datos. Verifica la conexión con Supabase.');
     } finally {
       setLoading(false);
     }

@@ -655,5 +655,108 @@ export const supabaseUtils = {
       console.error('Error de conexión con Supabase:', error);
       return false;
     }
+  },
+
+  // ==================== SINCRONIZACIÓN HÍBRIDA ====================
+
+  // Sincronizar usuario del backend con Supabase
+  async syncUserWithSupabase(backendUser: any): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      // Verificar si el usuario ya existe en Supabase
+      const existingUser = await this.getUserByEmail(backendUser.email);
+      
+      if (existingUser) {
+        // Usuario existe, actualizar datos
+        const success = await this.updateUser(existingUser.id, {
+          nombre: backendUser.nombre,
+          email: backendUser.email,
+          telefono: backendUser.telefono || '',
+          rol: backendUser.rol,
+          activo: backendUser.activo !== false
+        });
+        
+        if (success) {
+          console.log('✅ Usuario actualizado en Supabase:', backendUser.email);
+        }
+        return success;
+      } else {
+        // Usuario no existe, crear nuevo
+        const success = await this.addUser({
+          nombre: backendUser.nombre,
+          email: backendUser.email,
+          telefono: backendUser.telefono || '',
+          rol: backendUser.rol,
+          activo: backendUser.activo !== false
+        });
+        
+        if (success) {
+          console.log('✅ Usuario creado en Supabase:', backendUser.email);
+        }
+        return success;
+      }
+    } catch (error) {
+      console.error('❌ Error sincronizando usuario:', error);
+      return false;
+    }
+  },
+
+  // Obtener usuario por email
+  async getUserByEmail(email: string): Promise<SupabaseUser | null> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Usuario no encontrado
+          return null;
+        }
+        console.error('Error obteniendo usuario por email:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return null;
+    }
+  },
+
+  // Actualizar usuario existente
+  async updateUser(id: string, userData: Partial<SupabaseUser>): Promise<boolean> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase no configurado');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update(userData)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error actualizando usuario:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error de conexión con Supabase:', error);
+      return false;
+    }
   }
 };

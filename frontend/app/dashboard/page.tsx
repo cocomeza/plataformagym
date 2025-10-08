@@ -55,6 +55,8 @@ export default function DashboardPage() {
 
     } catch (error) {
       console.error('❌ Error cargando datos:', error);
+      // Fallback: mostrar mensaje pero no romper la app
+      toast.error('Error cargando datos. Verifica la conexión.');
     } finally {
       setLoading(false);
     }
