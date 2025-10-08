@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabaseUtils, SupabaseAttendance, SupabasePayment, SupabaseNotification } from '@/lib/supabase-utils';
+import toast from 'react-hot-toast';
 import { 
   Dumbbell, 
   QrCode, 
