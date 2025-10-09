@@ -15,12 +15,21 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 Iniciando login con:', { email, password });
     setLoading(true);
 
-    const success = await signIn(email, password);
-    
-    if (success) {
-      router.push('/dashboard');
+    try {
+      const success = await signIn(email, password);
+      console.log('📋 Resultado del login:', success);
+      
+      if (success) {
+        console.log('✅ Login exitoso, redirigiendo...');
+        router.push('/dashboard');
+      } else {
+        console.log('❌ Login falló');
+      }
+    } catch (error) {
+      console.error('💥 Error en handleSubmit:', error);
     }
     
     setLoading(false);
