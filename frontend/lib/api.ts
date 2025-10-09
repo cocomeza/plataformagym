@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+// Forzar uso de rutas locales de Next.js
+const API_BASE_URL = '/api';
 
 // Configurar axios con interceptores
 const api = axios.create({
