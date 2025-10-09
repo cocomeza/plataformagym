@@ -12,8 +12,8 @@ export interface User {
 export interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signUp: (email: string, password: string, nombre: string) => Promise<{ success: boolean; error?: string }>;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string, nombre: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -55,10 +55,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkUser();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
+      // En producción usa las API routes de Next.js (mismo dominio)
+      const response = await fetch(`/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,19 +80,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
-        return { success: true };
+        return true;
       } else {
-        return { success: false, error: data.error };
+        alert(data.error || 'Error al iniciar sesión');
+        return false;
       }
     } catch (error) {
-      return { success: false, error: 'Error de conexión' };
+      console.error('Error en signIn:', error);
+      alert('Error de conexión con el servidor');
+      return false;
     }
   };
 
-  const signUp = async (email: string, password: string, nombre: string) => {
+  const signUp = async (email: string, password: string, nombre: string): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/auth/register`, {
+      // En producción usa las API routes de Next.js (mismo dominio)
+      const response = await fetch(`/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,12 +117,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
 
-        return { success: true };
+        return true;
       } else {
-        return { success: false, error: data.error };
+        alert(data.error || 'Error al registrarse');
+        return false;
       }
     } catch (error) {
-      return { success: false, error: 'Error de conexión' };
+      console.error('Error en signUp:', error);
+      alert('Error de conexión con el servidor');
+      return false;
     }
   };
 
