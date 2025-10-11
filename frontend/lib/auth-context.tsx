@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { supabaseUtils } from './supabase-utils';
+import { supabase } from './supabase';
 
 interface User {
   id: string;
@@ -66,42 +67,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // 1. Autenticar con backend de Render
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gym-platform-backend.onrender.com';
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      console.log('🚀 Iniciando login con Supabase:', { email });
+      
+      // 1. Autenticar con Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
       });
 
-      const data = await response.json();
-
-      if (data.success) {
-        // 2. Guardar token y usuario en localStorage
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        
-        // 3. Sincronizar usuario con Supabase (si no existe)
-        try {
-          await supabaseUtils.syncUserWithSupabase(data.user);
-          console.log('✅ Usuario sincronizado con Supabase');
-        } catch (syncError) {
-          console.warn('⚠️ Error sincronizando con Supabase:', syncError);
-          // No fallar el login por esto
-        }
-        
-        toast.success('¡Bienvenido!');
-        return true;
-      } else {
-        toast.error(data.error || 'Error al iniciar sesión');
+      if (authError) {
+        console.error('❌ Error de autenticación:', authError);
+        toast.error(authError.message || 'Credenciales incorrectas');
         return false;
       }
+
+      if (!authData.user) {
+        toast.error('Error al obtener datos del usuario');
+        return false;
+      }
+
+      // 2. Obtener datos del usuario desde la tabla users
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (userError || !userData) {
+        console.error('❌ Error obteniendo datos del usuario:', userError);
+        toast.error('Usuario no encontrado en la base de datos');
+        return false;
+      }
+
+      // 3. Verificar que el usuario esté activo
+      if (!userData.activo) {
+        toast.error('Tu cuenta está desactivada');
+        return false;
+      }
+
+      // 4. Crear objeto de usuario para el frontend
+      const frontendUser = {
+        id: userData.id,
+        nombre: userData.nombre,
+        email: userData.email,
+        rol: userData.rol
+      };
+
+      // 5. Guardar en localStorage
+      localStorage.setItem('user', JSON.stringify(frontendUser));
+      setUser(frontendUser);
+      
+      console.log('✅ Login exitoso:', frontendUser);
+      toast.success('¡Bienvenido!');
+      return true;
+
     } catch (error) {
-      console.error('Error en login:', error);
-      toast.error('Error de conexión');
+      console.error('💥 Error en login:', error);
+      toast.error('Error de conexión con el servidor');
       return false;
     }
   };
