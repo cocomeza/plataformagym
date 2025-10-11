@@ -1,27 +1,15 @@
-# Netlify Build Configuration Override
-# This file forces Netlify to use updated configuration
-# Generated: 2025-01-06 21:35:00 - Force clean build with type fixes
+# Netlify Build Configuration
+# Configurado para Next.js con API Routes
 
 [build]
   base = "frontend"
-  command = "rm -rf node_modules package-lock.json && npm install && npm run build"
-  publish = "out"
+  command = "npm install && npm run build"
+  # Netlify detecta automáticamente el directorio de publicación para Next.js
 
 [build.environment]
   NODE_VERSION = "18"
   NODE_ENV = "production"
   NEXT_TELEMETRY_DISABLED = "1"
-  CI = "true"
-  JWT_SECRET = "gym-platform-jwt-secret-key-2025"
-  NETLIFY_CACHE_DISABLED = "true"
-  NETLIFY_BUILD_CACHE_DISABLED = "true"
-  NETLIFY = "true"
-
-# Redirecciones para SPA
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
 
 # Headers de seguridad
 [[headers]]

@@ -20,15 +20,9 @@ const nextConfig = {
     return config;
   },
   
-  // Configuración para Netlify - usar static export solo si es necesario
-  ...(process.env.NETLIFY === 'true' ? {
-    output: 'export',
-    trailingSlash: true,
-    skipTrailingSlashRedirect: true,
-  } : {
-    trailingSlash: true,
-    skipTrailingSlashRedirect: true,
-  }),
+  // Configuración para Netlify - sin static export para que funcionen las API routes
+  trailingSlash: true,
+  skipTrailingSlashRedirect: true,
 }
 
 module.exports = nextConfig
