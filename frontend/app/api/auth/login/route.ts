@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { adminStorage } from '@/lib/admin-storage';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,32 +19,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Buscar usuario en el almacenamiento en memoria
-    const users = adminStorage.users.getAll();
-    const user = users.find(u => u.email === email && u.activo === true);
+    // Buscar usuario en la base de datos
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('activo', true)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
+      console.error('Error buscando usuario:', error);
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
       );
     }
 
-    // Verificar contraseña (sistema simple para demo)
-    const validPasswords = {
-      'admin@test.com': 'admin123'
-    };
-
-    if (validPasswords[email as keyof typeof validPasswords] !== password) {
+    // Verificar contraseña
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
       );
     }
 
-    // Generar JWT con secreto por defecto si no está configurado
-    const jwtSecret = process.env.JWT_SECRET || 'gym-platform-jwt-secret-key-2025';
+    // Verificar que las variables de entorno estén configuradas
+    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+      console.error('Variables de entorno JWT no configuradas');
+      return NextResponse.json(
+        { error: 'Configuración del servidor incompleta' },
+        { status: 500 }
+      );
+    }
 
+    // Generar JWT
+    const jwtSecret = process.env.JWT_SECRET as string;
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET as string;
+    
     const token = jwt.sign(
       { 
         userId: user.id, 
@@ -49,9 +67,22 @@ export async function POST(request: NextRequest) {
       { expiresIn: '1h' }
     );
 
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      jwtRefreshSecret,
+      { expiresIn: '7d' }
+    );
+
+    // Actualizar refresh token en la base de datos
+    await supabase
+      .from('users')
+      .update({ refresh_token: refreshToken })
+      .eq('id', user.id);
+
     return NextResponse.json({
       success: true,
       token,
+      refreshToken,
       user: {
         id: user.id,
         nombre: user.nombre,
