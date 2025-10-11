@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Temporalmente hardcodeadas para debug
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ppujkawteiowcmkkbzri.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdWprYXd0ZWlvd2Nta2tienJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNTkwMDksImV4cCI6MjA3NDgzNTAwOX0.6xjS_mf1ajbGIxtdNN3XGnYWvAoDoCXb5SmRGKvZ1LQ';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jfiupijgbcanamhecrer.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmaXVwaWpnYmNhbmFtaGVjcmVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNjkxNTAsImV4cCI6MjA3NTc0NTE1MH0.L0yeSuO7YU_Tjpy2z0SbOyA5R5xJ6HpdMIrxg83Qye4';
 
 console.log('🔍 Supabase URL:', supabaseUrl);
 console.log('🔍 Supabase Key (primeros 20 chars):', supabaseAnonKey.substring(0, 20) + '...');
