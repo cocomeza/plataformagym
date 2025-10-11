@@ -6,21 +6,8 @@
     "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
     "start": "cd frontend && npm run start",
-    "lint": "cd frontend && npm run lint",
-    "install:frontend": "cd frontend && npm install"
+    "lint": "cd frontend && npm run lint"
   },
-  "dependencies": {
-    "next": "^14.0.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
-    "typescript": "^5.0.0"
-  },
-  "workspaces": [
-    "frontend"
-  ],
   "engines": {
     "node": ">=18.0.0"
   }
