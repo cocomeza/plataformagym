@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Forzar uso de rutas locales de Next.js
-const API_BASE_URL = '/api';
+// Usar backend de Render
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gym-platform-backend.onrender.com';
 
 // Configurar axios con interceptores
 const api = axios.create({

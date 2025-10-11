@@ -67,7 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       // 1. Autenticar con backend de Render
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/login', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gym-platform-backend.onrender.com';
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (nombre: string, email: string, password: string): Promise<boolean> => {
     try {
       // 1. Registrar con backend de Render
-      const response = await fetch('https://gym-platform-backend.onrender.com/api/auth/register', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gym-platform-backend.onrender.com';
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
