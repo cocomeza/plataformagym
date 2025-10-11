@@ -1,21 +1,18 @@
 {
-  "name": "gym-platform-testing",
+  "name": "gym-platform",
   "version": "1.0.0",
-  "description": "Scripts de testing para la plataforma del gimnasio",
-  "main": "test-system.js",
+  "private": true,
   "scripts": {
-    "test": "node test-system.js",
-    "test-health": "node -e \"require('axios').get('https://gym-platform-backend.onrender.com/health').then(r => console.log('✅ Health OK:', r.data)).catch(e => console.log('❌ Health FAILED:', e.message))\"",
-    "test-register": "node -e \"require('axios').post('https://gym-platform-backend.onrender.com/auth/register', {email: 'test@test.com', password: 'test123', name: 'Test User', role: 'cliente'}).then(r => console.log('✅ Register OK:', r.data)).catch(e => console.log('❌ Register FAILED:', e.response?.data || e.message))\"",
-    "test-login": "node -e \"require('axios').post('https://gym-platform-backend.onrender.com/auth/login', {email: 'test@test.com', password: 'test123'}).then(r => console.log('✅ Login OK:', r.data)).catch(e => console.log('❌ Login FAILED:', e.response?.data || e.message))\""
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd frontend && npm run start",
+    "lint": "cd frontend && npm run lint",
+    "install:frontend": "cd frontend && npm install"
   },
-  "dependencies": {
-    "axios": "^1.6.0",
-    "bcryptjs": "^2.4.3",
-    "@supabase/supabase-js": "^2.39.0",
-    "dotenv": "^16.3.1"
-  },
-  "keywords": ["testing", "gym", "platform", "api"],
-  "author": "Tu Nombre",
-  "license": "MIT"
+  "workspaces": [
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
