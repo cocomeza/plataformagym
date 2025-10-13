@@ -3,13 +3,13 @@
 # Script de build para Render
 echo "🚀 Iniciando build para Render..."
 
-# Ir al directorio frontend
-cd frontend
+# Ir al directorio services/backend
+cd services/backend
 
 # Limpiar instalaciones anteriores
 echo "🧹 Limpiando instalaciones anteriores..."
 rm -rf node_modules
-rm -rf .next
+rm -rf dist
 
 # Instalar dependencias
 echo "📦 Instalando dependencias..."
@@ -17,13 +17,13 @@ npm install
 
 # Verificar que las variables de entorno estén configuradas
 echo "🔍 Verificando variables de entorno..."
-if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
-    echo "❌ ERROR: NEXT_PUBLIC_SUPABASE_URL no está configurada"
+if [ -z "$SUPABASE_URL" ]; then
+    echo "❌ ERROR: SUPABASE_URL no está configurada"
     exit 1
 fi
 
-if [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
-    echo "❌ ERROR: NEXT_PUBLIC_SUPABASE_ANON_KEY no está configurada"
+if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+    echo "❌ ERROR: SUPABASE_SERVICE_ROLE_KEY no está configurada"
     exit 1
 fi
 

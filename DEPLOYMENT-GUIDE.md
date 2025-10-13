@@ -25,8 +25,8 @@
 4. Configuración:
    - **Name**: `gym-platform-backend`
    - **Environment**: `Node`
-   - **Build Command**: `cd backend && npm run render-build`
-   - **Start Command**: `cd backend && npm run render-start`
+   - **Build Command**: `cd services/backend && npm run render-build`
+   - **Start Command**: `cd services/backend && npm run render-start`
    - **Plan**: `Free`
 
 ### 1.3 Variables de Entorno en Render
