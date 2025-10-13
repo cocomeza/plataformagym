@@ -1,12 +1,6 @@
 {
-  "_comment": "Configuración de Vercel para proyecto Next.js en estructura monorepo",
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "frontend/.next",
   "framework": "nextjs",
-  "rootDirectory": "frontend",
-  "_explanation": {
-    "rootDirectory": "Especifica que el proyecto Next.js está en la carpeta frontend",
-    "outputDirectory": "Directorio donde Next.js genera los archivos compilados",
-    "buildCommand": "Comando para instalar dependencias y compilar el proyecto"
-  }
+  "rootDirectory": "frontend"
 }
