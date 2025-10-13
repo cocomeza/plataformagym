@@ -5,10 +5,10 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
-  // Configuración de imágenes
+  // Configuración de imágenes optimizada para Vercel
   images: {
     domains: ['images.unsplash.com', 'i.postimg.cc'],
-    unoptimized: true, // Para Netlify
+    // Removido unoptimized para mejor rendimiento en Vercel
   },
   
   // Configuración de webpack para alias
@@ -20,9 +20,8 @@ const nextConfig = {
     return config;
   },
   
-  // Configuración para Netlify - sin static export para que funcionen las API routes
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  // Configuración optimizada para Vercel
+  // Removido trailingSlash para mejor compatibilidad
 }
 
 module.exports = nextConfig
