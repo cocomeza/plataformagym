@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !user) {
+      console.error('Error buscando usuario:', error);
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar que las variables de entorno estén configuradas
     if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+      console.error('Variables de entorno JWT no configuradas');
       return NextResponse.json(
         { error: 'Configuración del servidor incompleta' },
         { status: 500 }

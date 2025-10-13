@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 import { Dumbbell, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
@@ -15,12 +15,21 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 Iniciando login con:', { email, password });
     setLoading(true);
 
-    const success = await signIn(email, password);
-    
-    if (success) {
-      router.push('/dashboard');
+    try {
+      const success = await signIn(email, password);
+      console.log('📋 Resultado del login:', success);
+      
+      if (success) {
+        console.log('✅ Login exitoso, redirigiendo...');
+        router.push('/dashboard');
+      } else {
+        console.log('❌ Login falló');
+      }
+    } catch (error) {
+      console.error('💥 Error en handleSubmit:', error);
     }
     
     setLoading(false);
@@ -133,8 +142,8 @@ export default function LoginPage() {
             Credenciales de prueba:
           </h3>
           <div className="text-xs text-yellow-700 space-y-1">
-            <p><strong>Admin:</strong> admin@gimnasio.com / admin123</p>
-            <p><strong>Deportista:</strong> Crea una cuenta nueva</p>
+            <p><strong>Admin:</strong> admin@test.com / admin123</p>
+            <p className="text-yellow-600 italic">O crea una cuenta nueva como deportista</p>
           </div>
         </div>
       </div>

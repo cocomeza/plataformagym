@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import { supabaseUtils, SupabaseAttendance, SupabasePayment, SupabaseNotification } from '@/lib/supabase-utils';
+import toast from 'react-hot-toast';
 import { 
   Dumbbell, 
   QrCode, 
@@ -11,139 +14,112 @@ import {
   LogOut, 
   CheckCircle,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Bell
 } from 'lucide-react';
-import QRCode from 'qrcode.react';
-
-interface AttendanceData {
-  id: string;
-  fecha_hora: string;
-  metodo: string;
-}
-
-interface PaymentData {
-  id: string;
-  fecha: string;
-  monto: number;
-  metodo: string;
-  estado: string;
-}
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
-  const [attendance, setAttendance] = useState<AttendanceData[]>([]);
-  const [payments, setPayments] = useState<PaymentData[]>([]);
+  const [attendance, setAttendance] = useState<SupabaseAttendance[]>([]);
+  const [payments, setPayments] = useState<SupabasePayment[]>([]);
+  const [notifications, setNotifications] = useState<SupabaseNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [qrExpiry, setQrExpiry] = useState<number | null>(null);
+  const [attendanceCode, setAttendanceCode] = useState('');
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-
-    if (user.rol !== 'deportista') {
-      router.push('/admin');
-      return;
-    }
 
     loadData();
   }, [user, router]);
 
   const loadData = async () => {
+    if (!user) return;
+    
     try {
-      const token = localStorage.getItem('token');
+      console.log('📊 Cargando datos del usuario desde Supabase...');
       
-      // Cargar asistencias
-      const attendanceResponse = await fetch('/api/attendance/my', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (attendanceResponse.ok) {
-        const attendanceData = await attendanceResponse.json();
-        setAttendance(attendanceData);
-      }
+      // Cargar asistencias del usuario
+      const attendanceData = await supabaseUtils.getUserAttendances(user.id);
+      setAttendance(attendanceData || []);
+      console.log('✅ Asistencias cargadas:', attendanceData);
 
-      // Cargar pagos
-      const paymentsResponse = await fetch('/api/payments/my', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (paymentsResponse.ok) {
-        const paymentsData = await paymentsResponse.json();
-        setPayments(paymentsData);
-      }
+      // Cargar pagos (filtrar por usuario en el cliente por ahora)
+      const allPayments = await supabaseUtils.getAllPayments();
+      const userPayments = allPayments.filter(p => p.userId === user.id);
+      setPayments(userPayments || []);
+      console.log('✅ Pagos cargados:', userPayments);
+
+      // Cargar notificaciones del usuario
+      const notificationsData = await supabaseUtils.getUserNotifications(user.id);
+      setNotifications(notificationsData || []);
+      console.log('✅ Notificaciones cargadas:', notificationsData);
 
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('❌ Error cargando datos:', error);
+      // Fallback: mostrar mensaje pero no romper la app
+      toast.error('Error cargando datos. Verifica la conexión.');
     } finally {
       setLoading(false);
     }
   };
 
-  const generateQR = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/attendance/qr/generate', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        setQrCode(data.qrCode);
-        setQrExpiry(data.expiresAt);
-        
-        // Auto-hide QR after expiry
-        setTimeout(() => {
-          setQrCode(null);
-          setQrExpiry(null);
-        }, data.expiresIn * 60 * 1000);
-      }
-    } catch (error) {
-      console.error('Error generando QR:', error);
-    }
-  };
-
-  const scanQR = async () => {
-    // En una implementación real, aquí usarías la cámara del dispositivo
-    const qrCode = prompt('Escanea el código QR o ingrésalo manualmente:');
+  const markAttendance = async () => {
+    if (!user) return;
     
-    if (qrCode) {
+    const code = prompt('Ingresa el código de asistencia de 4 dígitos:');
+    
+    if (code && code.length === 4 && /^\d{4}$/.test(code)) {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/attendance/qr/scan', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ qrCode }),
-        });
+        // Verificar si ya asistió hoy
+        const hasAttended = await supabaseUtils.hasUserAttendedToday(user.id);
+        if (hasAttended) {
+          alert('Ya marcaste asistencia hoy');
+          return;
+        }
 
-        const data = await response.json();
+        // Registrar asistencia en Supabase
+        const success = await supabaseUtils.addAttendance({
+          userId: user.id,
+          userName: user.nombre,
+          metodo: 'Código',
+          fecha_hora: new Date().toISOString(),
+          codigo_usado: code
+        });
         
-        if (data.success) {
-          alert('¡Asistencia marcada correctamente!');
+        if (success) {
+          alert('✅ ¡Asistencia marcada correctamente!');
           loadData(); // Recargar datos
         } else {
-          alert(data.error || 'Error al marcar asistencia');
+          alert('❌ Error al marcar asistencia');
         }
       } catch (error) {
-        console.error('Error escaneando QR:', error);
+        console.error('❌ Error validando código:', error);
         alert('Error de conexión');
       }
+    } else if (code) {
+      alert('Por favor ingresa un código válido de 4 dígitos');
     }
   };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const success = await supabaseUtils.markNotificationAsRead(notificationId);
+      
+      if (success) {
+        // Actualizar el estado local
+        setNotifications(prev => 
+          prev.map(notif => 
+            notif.id === notificationId ? { ...notif, leida: true } : notif
+          )
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error marcando notificación como leída:', error);
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.leida).length;
 
   if (loading) {
     return (
@@ -163,7 +139,8 @@ export default function DashboardPage() {
     new Date(lastPayment.fecha) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedRoute requiredRole="deportista">
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -178,6 +155,19 @@ export default function DashboardPage() {
               <span className="text-sm text-gray-600">
                 Hola, {user?.nombre}
               </span>
+              
+              {/* Notificaciones */}
+              <div className="relative">
+                <button className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
+                  <Bell className="h-6 w-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
               <button
                 onClick={signOut}
                 className="btn btn-secondary btn-sm"
@@ -256,78 +246,91 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* QR Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Attendance Code Section */}
+        <div className="grid grid-cols-1 gap-8 mb-8">
           <div className="card">
             <div className="card-header">
               <h3 className="text-lg font-semibold text-gray-900">
-                Marcar Asistencia
+                🔢 Marcar Asistencia
               </h3>
               <p className="text-sm text-gray-600">
-                Escanea el código QR del gimnasio para marcar tu asistencia
-              </p>
-            </div>
-            <div className="card-content">
-              {qrCode ? (
-                <div className="text-center">
-                  <div className="mb-4">
-                    <QRCode value={qrCode} size={200} />
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Código QR válido por {qrExpiry ? Math.ceil((qrExpiry - Date.now()) / 60000) : 0} minutos
-                  </p>
-                  <button
-                    onClick={() => {
-                      setQrCode(null);
-                      setQrExpiry(null);
-                    }}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Cerrar QR
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <button
-                    onClick={generateQR}
-                    className="btn btn-primary btn-md"
-                  >
-                    Generar Código QR
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2">
-                    O pide al recepcionista que marque tu asistencia
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Escanear QR
-              </h3>
-              <p className="text-sm text-gray-600">
-                Usa la cámara para escanear el código QR del gimnasio
+                Ingresa el código de 4 dígitos que te proporciona el administrador
               </p>
             </div>
             <div className="card-content">
               <div className="text-center">
-                <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl">🔢</span>
+                </div>
                 <button
-                  onClick={scanQR}
-                  className="btn btn-success btn-md"
+                  onClick={markAttendance}
+                  className="btn btn-success btn-lg"
                 >
-                  Escanear QR
+                  🔢 Marcar Asistencia
                 </button>
-                <p className="text-xs text-gray-500 mt-2">
-                  Funcionalidad de cámara (implementar en producción)
+                <p className="text-sm text-gray-500 mt-4">
+                  Pide el código de 4 dígitos al recepcionista o administrador del gimnasio
                 </p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Notificaciones */}
+        {notifications.length > 0 && (
+          <div className="card mb-8">
+            <div className="card-header">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  🔔 Notificaciones
+                </h3>
+                <span className="text-sm text-gray-500">
+                  {unreadCount} sin leer
+                </span>
+              </div>
+            </div>
+            <div className="card-content">
+              <div className="space-y-3">
+                {notifications.slice(0, 3).map((notification) => (
+                  <div 
+                    key={notification.id} 
+                    className={`p-4 rounded-lg border-l-4 ${
+                      notification.tipo === 'error' ? 'border-red-500 bg-red-50' :
+                      notification.tipo === 'warning' ? 'border-yellow-500 bg-yellow-50' :
+                      notification.tipo === 'success' ? 'border-green-500 bg-green-50' :
+                      'border-blue-500 bg-blue-50'
+                    } ${!notification.leida ? 'font-medium' : 'opacity-75'}`}
+                    onClick={() => !notification.leida && markNotificationAsRead(notification.id)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          {notification.titulo}
+                        </h4>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {notification.mensaje}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {new Date(notification.fecha).toLocaleString('es-AR')}
+                        </p>
+                      </div>
+                      {!notification.leida && (
+                        <div className="w-2 h-2 bg-red-500 rounded-full ml-2"></div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {notifications.length > 3 && (
+                <div className="mt-4 text-center">
+                  <button className="text-sm text-primary-600 hover:text-primary-700">
+                    Ver todas las notificaciones ({notifications.length})
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -398,6 +401,8 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-    </div>
+
+      </div>
+    </ProtectedRoute>
   );
 }

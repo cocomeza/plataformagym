@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../lib/auth-context';
-import { Dumbbell, Eye, EyeOff, User } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { Dumbbell, Eye, EyeOff, User, X } from 'lucide-react';
 
 export default function RegisterPage() {
   const [nombre, setNombre] = useState('');
@@ -13,28 +13,49 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const { signUp } = useAuth();
   const router = useRouter();
 
+  // Función para validar email
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
+    // Validaciones
+    if (!nombre.trim()) {
+      setError('El nombre es requerido');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setError('Formato de email inválido. Ejemplo: usuario@ejemplo.com');
+      return;
+    }
+
     if (password !== confirmPassword) {
-      alert('Las contraseñas no coinciden');
+      setError('Las contraseñas no coinciden');
       return;
     }
 
     if (password.length < 6) {
-      alert('La contraseña debe tener al menos 6 caracteres');
+      setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     setLoading(true);
 
-    const success = await signUp(email, password, nombre);
+    const success = await signUp(nombre, email, password);
     
     if (success) {
       router.push('/dashboard');
+    } else {
+      setError('Error al crear la cuenta. Verifica que el email no esté registrado.');
     }
     
     setLoading(false);
@@ -54,6 +75,28 @@ export default function RegisterPage() {
             Únete a nuestro gimnasio
           </p>
         </div>
+
+        {/* Mensaje de error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <X className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+              <div className="ml-auto pl-3">
+                <button
+                  onClick={() => setError('')}
+                  className="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">

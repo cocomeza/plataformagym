@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import jwt from 'jsonwebtoken';
+import { adminStorage } from '@/lib/admin-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,107 +13,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Formato de email inválido' },
-        { status: 400 }
-      );
-    }
-
-    // Validar contraseña
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 6 caracteres' },
-        { status: 400 }
-      );
-    }
-
     // Verificar si el usuario ya existe
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
+    const users = adminStorage.users.getAll();
+    const existingUser = users.find(u => u.email === email);
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Ya existe un usuario con este email' },
-        { status: 409 }
+        { error: 'El email ya está registrado' },
+        { status: 400 }
       );
     }
 
-    // Encriptar contraseña
-    const saltRounds = 12;
-    const password_hash = await bcrypt.hash(password, saltRounds);
+    // Crear nuevo usuario
+    const newUser = {
+      id: Date.now().toString(),
+      nombre,
+      email,
+      telefono: '',
+      rol,
+      activo: true,
+      created_at: new Date().toISOString()
+    };
 
-    // Crear usuario
-    const { data: user, error } = await supabase
-      .from('users')
-      .insert({
-        nombre,
-        email,
-        password_hash,
-        rol,
-        activo: true
-      })
-      .select()
-      .single();
+    // Agregar usuario al almacenamiento
+    adminStorage.users.add(newUser);
 
-    if (error) {
-      console.error('Error creando usuario:', error);
-      return NextResponse.json(
-        { error: 'Error al crear el usuario' },
-        { status: 500 }
-      );
-    }
+    // Generar JWT con secreto por defecto si no está configurado
+    const jwtSecret = process.env.JWT_SECRET || 'gym-platform-jwt-secret-key-2025';
 
-    // Verificar que las variables de entorno estén configuradas
-    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
-      return NextResponse.json(
-        { error: 'Configuración del servidor incompleta' },
-        { status: 500 }
-      );
-    }
-
-    // Generar JWT
-    const jwtSecret = process.env.JWT_SECRET as string;
-    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET as string;
-    
     const token = jwt.sign(
       { 
-        userId: user.id, 
-        email: user.email, 
-        rol: user.rol 
+        userId: newUser.id, 
+        email: newUser.email, 
+        rol: newUser.rol 
       },
       jwtSecret,
       { expiresIn: '1h' }
     );
 
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      jwtRefreshSecret,
-      { expiresIn: '7d' }
-    );
-
-    // Actualizar refresh token
-    await supabase
-      .from('users')
-      .update({ refresh_token: refreshToken })
-      .eq('id', user.id);
-
     return NextResponse.json({
       success: true,
       token,
-      refreshToken,
       user: {
-        id: user.id,
-        nombre: user.nombre,
-        email: user.email,
-        rol: user.rol
+        id: newUser.id,
+        nombre: newUser.nombre,
+        email: newUser.email,
+        rol: newUser.rol
       }
-    }, { status: 201 });
+    });
 
   } catch (error) {
     console.error('Error en registro:', error);
